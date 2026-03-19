@@ -1,10 +1,11 @@
 #include "mpu_sensor.h"
 #include <MPU6050.h>
+#include "config.h"
 
 MPU6050 mpu;
 
 bool mpu_init() {
-    Wire.begin(21, 22);
+    Wire.begin(SDA_PIN, SCL_PIN);
     mpu.initialize();
     
 // ลองเช็ค Connection เบื้องต้น

@@ -3,6 +3,8 @@
 #include "mouse_bt.h"
 #include "serial_input.h"
 #include "joystick_input.h"
+#include "display_module.h"
+#include "config.h"
 
 // ค่าตัวแปรภายใน
 control_mode_t current_mode = control_mode_t::SENSOR_MOUSE;
@@ -17,10 +19,14 @@ void controller_init() {
 void controller_set_mode(control_mode_t mode) {
     current_mode = mode;
     Serial.print("Controller: Mode changed to ");
-    if (mode == control_mode_t::SERIAL_ONLY) Serial.println("Serial Only");
-    if (mode == control_mode_t::SENSOR_MOUSE) Serial.println("Air Mouse");
-    if (mode == control_mode_t::SENSOR_KEYS) Serial.println("Tilt Keys");
-    if (mode == control_mode_t::JOYSTICK_MOUSE) Serial.println("Joystick Mouse");
+    const char* mode_str = "";
+    if (mode == control_mode_t::SERIAL_ONLY) mode_str = "Serial Only";
+    else if (mode == control_mode_t::SENSOR_MOUSE) mode_str = "Air Mouse";
+    else if (mode == control_mode_t::SENSOR_KEYS) mode_str = "Tilt Keys";
+    else if (mode == control_mode_t::JOYSTICK_MOUSE) mode_str = "Joystick Mouse";
+    
+    Serial.println(mode_str);
+    display_update(mode_str, 0, 0, mouse_bt_is_connected());
 }
 
 void controller_update() {
@@ -45,10 +51,11 @@ void controller_update() {
             // --- แยก Logic ตามโหมด ---
             if (current_mode == control_mode_t::SENSOR_MOUSE) {
                 // เอียง MPU = ขยับเมาส์
-                int8_t mx = (int8_t)(data.gz / 512);
-                int8_t my = (int8_t)(data.gx / 512);
+                int8_t mx = (int8_t)(data.gz / MPU_DIVIDER);
+                int8_t my = (int8_t)(data.gx / MPU_DIVIDER);
                 if (mx != 0 || my != 0) {
                     mouse_move(mx, my);
+                    display_update("Air Mouse", mx, my, true);
                 }
             } 
             else if (current_mode == control_mode_t::SENSOR_KEYS) {
@@ -77,11 +84,12 @@ void controller_update() {
             }
 
             // ขยับเมาส์
-            int8_t mx = (int8_t)(joy.x / 140);
-            int8_t my = (int8_t)(joy.y / 140);
+            int8_t mx = (int8_t)(joy.x / JOY_DIVIDER);
+            int8_t my = (int8_t)(joy.y / JOY_DIVIDER);
             
             if (mx != 0 || my != 0) {
                 mouse_move(mx, my);
+                display_update("Joystick", mx, my, true);
             }
 
             // จัดการคลิ๊ก (SW)
