@@ -21,7 +21,17 @@ void mouse_move(int8_t x, int8_t y, int8_t wheel) {
 void mouse_click(uint8_t button) {
     if (mouse_bt_is_connected()) {
         ble_mouse.click(button);
-    } else {
-        Serial.println("Warning: Mouse click ignored (Bluetooth NOT CONNECTED)");
+    }
+}
+
+void mouse_press(uint8_t button) {
+    if (mouse_bt_is_connected()) {
+        ble_mouse.press(button);
+    }
+}
+
+void mouse_release(uint8_t button) {
+    if (mouse_bt_is_connected()) {
+        ble_mouse.release(button);
     }
 }

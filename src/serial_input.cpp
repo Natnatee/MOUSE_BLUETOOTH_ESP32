@@ -23,6 +23,7 @@ void serial_input_process() {
             if (mode_val == 0) controller_set_mode(control_mode_t::SERIAL_ONLY);
             else if (mode_val == 1) controller_set_mode(control_mode_t::SENSOR_MOUSE);
             else if (mode_val == 2) controller_set_mode(control_mode_t::SENSOR_KEYS);
+            else if (mode_val == 3) controller_set_mode(control_mode_t::JOYSTICK_MOUSE);
             return;
         }
 
