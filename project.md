@@ -1,50 +1,63 @@
 ## 🎯 1. Project Overview
-สร้างอุปกรณ์ควบคุมอเนกประสงค์สำหรับ Smart TV/PC โดยมีระบบ Input 2 โหมดหลัก:
-1.  **Serial Mode**: รับคำสั่งตรงจาก PC (Direct Control)
-2.  **Hardware Mode**: ใช้ Hardware Sensor (MPU6050) และปุ่มกด (ในอนาคต) มาทำลอจิกควบคุม
+สร้างอุปกรณ์ควบคุมอเนกประสงค์สำหรับ Smart TV/PC โดยทำงานได้ 2 สถานะหลัก (State Machine):
+1. **PLAY Mode**: อ่านค่าแอนะล็อก/ดิจิทัล นำไปสั่งเมาส์และคีย์บอร์ดแบบ Composite 
+2. **SETTING Mode**: หน้าต่างปรับแต่งสำหรับเปลี่ยน Profile และจับคู่ Input เข้าทิศทางเมาส์/ปุ่มกดคีย์บอร์ดแบบ Dynamic
 
 ## 🏗️ 1.5 Architecture (Modular Design)
-- **Data Providers**: `mpu_sensor` (คืนค่าดิบ/กรองแล้ว), `serial_input` (คำสั่งจาก PC)
-- **Logic Controller**: `input_manager` (ตัวตัดสินใจว่าค่าจาก Sensor จะเอาไปสั่งเมาส์หรือคีย์บอร์ด)
-- **Action Providers**: `mouse_bt` (Bluetooth Mouse), `keyboard_bt` (อนาคต)
-
-## 📌 6. Current State
-- [x] Initializing project structure
-- [x] Bluetooth Mouse (BLE HID) Working 100% on PC
-- [x] Serial Command Parser Working
-- [ ] Refactoring `mpu_sensor` to Data Provider Pattern
-- [ ] Implementing `input_manager` to bridge sensor and actions
+- **Data Providers**: `mpu_sensor`, `joystick_input`, `hw_inputs` (ปุ่ม x8, Potentiometer x1)
+- **Logic Controllers**: 
+   - `input_controller` (ตัวตัดสินใจหลักและคุม UI Refresh Rate 10FPS)
+   - `profile_manager` (จัดการข้อมูล Profile การผูกปุ่ม)
+   - `state_manager` (คุม FSM สลับโหมด)
+- **Action Providers**: `mouse_bt` (อัปเกรดเป็น `BleCombo` ส่งค่าทั้งเมาส์และคีย์บอร์ดสื่อมีเดีย)
+- **Display Provider**: `display_module` (OLED 3 โซน แสดง Profile, เมาส์, คีย์ และแถบเสียง)
 
 ## 🔌 2. Hardware Specs
 - **MCU**: ESP32 Classic (Original Chip)
 - **Sensor**: MPU6050 (GY-521) 3-Axis Gyro & Accelerometer
-- **Connection**: Bluetooth HID (Target: Smart TV Android)
-- **Input Channels**: I2C (MPU6050) & UART (Serial Port)
+- **Connection**: Bluetooth Composite HID (Keyboard + Mouse)
+- **Display**: OLED 0.96" I2C
 
 ## 📍 3. Pin Mapping Table
 | Device | Pin (ESP32) | Function | Type |
 |---|---|---|---|
-| **MPU6050** | GPIO 21 | SDA | I2C |
-| **MPU6050** | GPIO 22 | SCL | I2C |
-| **USB** | GPIO 1 (TX0) | TX | UART (Serial) |
-| **USB** | GPIO 3 (RX0) | RX | UART (Serial) |
+| **MPU6050 / OLED** | GPIO 21 | SDA | I2C |
+| **MPU6050 / OLED** | GPIO 22 | SCL | I2C |
+| **Joystick** | GPIO 34 | VRX | ADC1 |
+| **Joystick** | GPIO 35 | VRY | ADC1 |
+| **Joystick** | GPIO 32 | SW / Click | Digital In |
+| **Potentiometer** | GPIO 33 | Volume | ADC1 |
+| **Global Btn (Up)** | GPIO 13 | UI Navigation | Digital In (Pull-up) |
+| **Global Btn (Down)** | GPIO 12 | UI Navigation | Digital In (Pull-up) |
+| **Global Btn (OK)** | GPIO 14 | UI Select | Digital In (Pull-up) |
+| **Global Btn (Back)** | GPIO 27 | UI Switch State | Digital In (Pull-up) |
+| **Config Btn 1** | GPIO 17 | Custom Key | Digital In (Pull-up) |
+| **Config Btn 2** | GPIO 5 | Custom Key | Digital In (Pull-up) |
+| **Config Btn 3** | GPIO 18 | Custom Key | Digital In (Pull-up) |
+| **Config Btn 4** | GPIO 19 | Custom Key | Digital In (Pull-up) |
 
 ## 📚 4. Library Specs
-- `ESP32-BLE-Mouse` (โดย T-vK) - *รอการยืนยันว่าจะใช้ BLE หรือ Classic*
-- `MPU6050` (โดย ElectronicCats)
-- `I2Cdev` (สำหรับจัดการ Sensor)
+- `blackketter/ESP32-BLE-Combo` (คีย์บอร์ด+เมาส์ในตัวเดียว)
+- `electroniccats/MPU6050`
+- `Adafruit SSD1306` + `Adafruit GFX Library`
 
 ## ⚙️ 5. Config & Settings
+- **Partition Scheme**: `huge_app.csv` (ขยาย Flash เป็น 3MB)
 - **Baud Rate**: 115200
-- **Bluetooth Name**: `ESP32_Smart_Mouse`
-- **I2C Address**: 0x68 (Default MPU6050)
+- **I2C Address**: 0x3C (OLED), 0x68 (MPU6050)
 
 ## 📌 6. Current State
-- [x] Initializing project structure
-- [x] Creating `.gitignore`
-- [ ] Configuring `platformio.ini`
-- [ ] Developing Input Isolation Logic (Serial vs Gyro)
-- [ ] Implementing BT Mouse HID Logic
+- [x] Initializing project structure & GitHub
+- [x] Bluetooth HID Combo Working (Mouse + Keyboard Working)
+- [x] FSM & Dynamic Profile Manager 
+- [x] Display Module with Volume Bar UI and 10 FPS Rate Limiter
+- [x] HW Inputs (Debounce 250ms & Multiple Buttons/Potentiometer) 
+- [ ] Connect Potentiometer to actual `KEY_MEDIA_VOLUME` 
+- [ ] Implement `SETTING Mode` UI 
+- [ ] Save/Load Profiles with `Preferences`
 
 ## 📜 7. Issues & Solutions Log
-- (ยังไม่มีปัญหาบันทึก)
+- **[Fix] Flash Memory น้อยไป**: เปลี่ยน `board_build.partitions = huge_app.csv` 
+- **[Fix] เมาส์ไม่ขยับ/ปุ่มไม่ขึ้นเมื่อเปลี่ยนไลบรารี**: OS จำค่า Device Descriptor เก่า ต้องสั่ง Remove Device ออกาก Bluetooth Windows ก่อนเชื่อมต่อใหม่
+- **[Fix] ปุ่มสลับ Profile เบิ้ลข้ามหน้า**: ใส่หน่วงเวลา Debounce 250ms 
+- **[Fix] หน้าจอ OLED กระตุก/เมาส์หน่วง**: จับแยก `ui_needs_update` ไว้และครอบด้วย `last_ui_refresh > 100ms` (10 FPS Limit)
