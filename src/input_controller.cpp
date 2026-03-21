@@ -32,43 +32,47 @@ void controller_init() {
 
 void process_global_buttons(ButtonState bs) {
     SystemState state = get_current_state();
+    static unsigned long last_action = 0;
     
-    // PLAY Mode buttons
+    // ป้องกันการลั่น (Debounce) โดยเว้นระยะ 250ms
+    if (millis() - last_action < 250) {
+        last_btn_up = bs.up;
+        last_btn_down = bs.down;
+        last_btn_back = bs.back;
+        last_btn_ok = bs.ok;
+        return;
+    }
+
+    bool acted = false;
+
     if (state == SystemState::STATE_PLAY) {
-        // Toggle Profiles
-        if (bs.up && !last_btn_up) {
-            prev_profile();
-            ProfileData* p = get_current_profile();
-            Serial.printf("Profile changed to: %s\n", p->name);
-            display_update(p->name, 0, 0, mouse_bt_is_connected());
-        }
-        if (bs.down && !last_btn_down) {
-            next_profile();
-            ProfileData* p = get_current_profile();
-            Serial.printf("Profile changed to: %s\n", p->name);
-            display_update(p->name, 0, 0, mouse_bt_is_connected());
-        }
-        if (bs.back && !last_btn_back) {
-            switch_state(SystemState::STATE_SETTING_MAIN);
+        if (bs.up && !last_btn_up) { prev_profile(); acted = true; }
+        else if (bs.down && !last_btn_down) { next_profile(); acted = true; }
+        else if (bs.back && !last_btn_back) { 
+            switch_state(SystemState::STATE_SETTING_MAIN); 
             display_update("SETTING", 0, 0, mouse_bt_is_connected());
-            Serial.println("Entered SETTING Mode");
+            acted = true; 
         }
     } 
-    // SETTING Mode buttons
     else if (state == SystemState::STATE_SETTING_MAIN) {
-        if (bs.back && !last_btn_back) {
-            switch_state(SystemState::STATE_PLAY);
+        if (bs.back && !last_btn_back) { 
+            switch_state(SystemState::STATE_PLAY); 
+            acted = true; 
+        }
+    }
+
+    if (acted) {
+        last_action = millis();
+        if (get_current_state() == SystemState::STATE_PLAY) {
             ProfileData* p = get_current_profile();
             display_update(p->name, 0, 0, mouse_bt_is_connected());
-            Serial.println("Exited SETTING Mode");
         }
-        // Menu navigation logic will go here
     }
 
     last_btn_up = bs.up;
     last_btn_down = bs.down;
-    last_btn_ok = bs.ok;
     last_btn_back = bs.back;
+    last_btn_ok = bs.ok;
 }
 
 void controller_update() {
