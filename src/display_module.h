@@ -6,5 +6,6 @@
 #include "config.h"
 
 void display_init();
-void display_update(const char* mode, int x, int y, bool connected);
+void display_play_mode(const char* profile_name, bool connected, int mouse_x, int mouse_y, char key_pressed, int volume_pct);
+void display_setting_mode(const char* setting_name, int volume_pct, bool connected); // For later
 void display_clear();

@@ -11,11 +11,29 @@
 
 bool mpu_available = false;
 
-// Helpers for debounce
+// Global buttons
 bool last_btn_up = false;
 bool last_btn_down = false;
 bool last_btn_ok = false;
 bool last_btn_back = false;
+
+// UI State trackers
+int last_mouse_x = 0;
+int last_mouse_y = 0;
+char last_key_pressed = 0;
+
+void request_ui_update() {
+    SystemState state = get_current_state();
+    bool conn = mouse_bt_is_connected();
+    int current_vol = map(hw_read_pot(), 0, 4095, 0, 100);
+    
+    if (state == SystemState::STATE_PLAY) {
+        ProfileData* p = get_current_profile();
+        display_play_mode(p->name, conn, last_mouse_x, last_mouse_y, last_key_pressed, current_vol);
+    } else {
+        display_setting_mode("MAIN MENU", current_vol, conn);
+    }
+}
 
 void controller_init() {
     mpu_available = mpu_init();
@@ -25,16 +43,14 @@ void controller_init() {
     state_manager_init();
     
     Serial.println("Controller: Core system initialized!");
-    // Initial display
-    ProfileData* p = get_current_profile();
-    display_update(p->name, 0, 0, mouse_bt_is_connected());
+    request_ui_update();
 }
 
 void process_global_buttons(ButtonState bs) {
     SystemState state = get_current_state();
     static unsigned long last_action = 0;
     
-    // ป้องกันการลั่น (Debounce) โดยเว้นระยะ 250ms
+    // Debounce 250ms
     if (millis() - last_action < 250) {
         last_btn_up = bs.up;
         last_btn_down = bs.down;
@@ -50,7 +66,6 @@ void process_global_buttons(ButtonState bs) {
         else if (bs.down && !last_btn_down) { next_profile(); acted = true; }
         else if (bs.back && !last_btn_back) { 
             switch_state(SystemState::STATE_SETTING_MAIN); 
-            display_update("SETTING", 0, 0, mouse_bt_is_connected());
             acted = true; 
         }
     } 
@@ -63,10 +78,7 @@ void process_global_buttons(ButtonState bs) {
 
     if (acted) {
         last_action = millis();
-        if (get_current_state() == SystemState::STATE_PLAY) {
-            ProfileData* p = get_current_profile();
-            display_update(p->name, 0, 0, mouse_bt_is_connected());
-        }
+        request_ui_update();
     }
 
     last_btn_up = bs.up;
@@ -84,24 +96,25 @@ void controller_update() {
         } else {
             Serial.println(">>> Bluetooth DISCONNECTED! <<<");
         }
-        
-        // Refresh display
-        SystemState state = get_current_state();
-        if (state == SystemState::STATE_PLAY) {
-            display_update(get_current_profile()->name, 0, 0, current_connected);
-        } else {
-            display_update("SETTING", 0, 0, current_connected);
-        }
+        request_ui_update();
         last_connected = current_connected;
     }
 
     serial_input_process();
     
-    // Read HW 
     ButtonState bs = hw_read_buttons();
     process_global_buttons(bs);
 
-    // Main Control Loop
+    bool ui_needs_update = false;
+
+    // Track Potentiometer for UI Volume Changes 
+    static int last_vol_disp = map(hw_read_pot(), 0, 4095, 0, 100);
+    int curr_vol = map(hw_read_pot(), 0, 4095, 0, 100);
+    if (abs(curr_vol - last_vol_disp) >= 2) {
+        last_vol_disp = curr_vol;
+        ui_needs_update = true;
+    }
+
     if (get_current_state() == SystemState::STATE_PLAY && current_connected) {
         ProfileData* p = get_current_profile();
         
@@ -125,32 +138,30 @@ void controller_update() {
                 trigger_mouse_click = joy.click;
             }
 
-            // Move Mouse
             if (mouse_x != 0 || mouse_y != 0) {
                 mouse_move(mouse_x, mouse_y);
-                display_update(p->name, mouse_x, mouse_y, true);
+                last_mouse_x = mouse_x;
+                last_mouse_y = mouse_y;
+                ui_needs_update = true;
             }
 
-            // Click Mouse
             static bool last_mouse_click = false;
             if (trigger_mouse_click != last_mouse_click) {
-                if (trigger_mouse_click) mouse_press(MOUSE_LEFT);
+                if (trigger_mouse_click) { mouse_press(MOUSE_LEFT); last_key_pressed = 'M'; ui_needs_update = true; }
                 else mouse_release(MOUSE_LEFT);
                 last_mouse_click = trigger_mouse_click;
             }
             
             // === KEYBOARD PROCESSING ===
+            char key_this_frame = 0;
             if (p->keyboard_input == InputSource::BUTTON_SET_2) {
-                // Mock: Conf1 -> 'A', Conf2 -> 'B', Conf3 -> 'C', Conf4 -> 'D'
                 static bool lc1 = false, lc2 = false, lc3 = false, lc4 = false;
-                
-                if (bs.conf1 != lc1) { if (bs.conf1) keyboard_press('a'); else keyboard_release('a'); lc1 = bs.conf1; }
-                if (bs.conf2 != lc2) { if (bs.conf2) keyboard_press('b'); else keyboard_release('b'); lc2 = bs.conf2; }
-                if (bs.conf3 != lc3) { if (bs.conf3) keyboard_press('c'); else keyboard_release('c'); lc3 = bs.conf3; }
-                if (bs.conf4 != lc4) { if (bs.conf4) keyboard_press('d'); else keyboard_release('d'); lc4 = bs.conf4; }
+                if (bs.conf1 != lc1) { if (bs.conf1) { keyboard_press('a'); key_this_frame = 'A'; } else keyboard_release('a'); lc1 = bs.conf1; }
+                if (bs.conf2 != lc2) { if (bs.conf2) { keyboard_press('b'); key_this_frame = 'B'; } else keyboard_release('b'); lc2 = bs.conf2; }
+                if (bs.conf3 != lc3) { if (bs.conf3) { keyboard_press('c'); key_this_frame = 'C'; } else keyboard_release('c'); lc3 = bs.conf3; }
+                if (bs.conf4 != lc4) { if (bs.conf4) { keyboard_press('d'); key_this_frame = 'D'; } else keyboard_release('d'); lc4 = bs.conf4; }
             }
             else if (p->keyboard_input == InputSource::JOYSTICK) {
-                // Mock: Map Joystick to WASD
                 joystick_data_t joy = joystick_read();
                 static bool last_w = false, last_s = false, last_a = false, last_d = false;
                 bool w = joy.y < -JOY_DEAD_ZONE;
@@ -158,13 +169,32 @@ void controller_update() {
                 bool a = joy.x < -JOY_DEAD_ZONE;
                 bool d = joy.x > JOY_DEAD_ZONE;
                 
-                if (w != last_w) { if (w) keyboard_press('w'); else keyboard_release('w'); last_w = w; }
-                if (s != last_s) { if (s) keyboard_press('s'); else keyboard_release('s'); last_s = s; }
-                if (a != last_a) { if (a) keyboard_press('a'); else keyboard_release('a'); last_a = a; }
-                if (d != last_d) { if (d) keyboard_press('d'); else keyboard_release('d'); last_d = d; }
+                if (w != last_w) { if (w) { keyboard_press('w'); key_this_frame='W'; } else keyboard_release('w'); last_w = w; }
+                if (s != last_s) { if (s) { keyboard_press('s'); key_this_frame='S'; } else keyboard_release('s'); last_s = s; }
+                if (a != last_a) { if (a) { keyboard_press('a'); key_this_frame='A'; } else keyboard_release('a'); last_a = a; }
+                if (d != last_d) { if (d) { keyboard_press('d'); key_this_frame='D'; } else keyboard_release('d'); last_d = d; }
+            }
+
+            // Keyboard UI display logic
+            static unsigned long last_key_time = 0;
+            if (key_this_frame != 0) {
+                last_key_pressed = key_this_frame;
+                last_key_time = millis();
+                ui_needs_update = true;
+            } else if (last_key_pressed != 0 && millis() - last_key_time > 500 && last_key_pressed != 'M') {
+                last_key_pressed = 0;
+                ui_needs_update = true;
             }
 
             last_check = millis();
         }
+    }
+
+    // --- Rate Limit UI Refresh (Max 10 FPS) ---
+    // ป้องกันจอ I2C ทำให้อ่านค่าเมาส์ช้าลง (หน่วง)
+    static unsigned long last_ui_refresh = 0;
+    if (ui_needs_update && millis() - last_ui_refresh > 100) {
+        request_ui_update();
+        last_ui_refresh = millis();
     }
 }

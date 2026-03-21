@@ -21,28 +21,63 @@ void display_init() {
     display.display();
 }
 
-void display_update(const char* mode, int x, int y, bool connected) {
+void display_play_mode(const char* profile_name, bool connected, int mouse_x, int mouse_y, char key_pressed, int volume_pct) {
     display.clearDisplay();
     
-    // ส่วนหัว (สีเหลือง - แถว 0-15)
+    // Header (Yellow 0-15px)
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
+    
     display.setCursor(0, 0);
-    display.printf("MODE: %s", mode);
+    display.printf("PROFILE: %s", profile_name);
     
-    // ขยับมาบรรทัดที่ 8 เพื่อให้อยู่ในเขตสีเหลือง (พิกเซลที่ 8-15)
     display.setCursor(0, 8);
-    display.printf("BT: %s", connected ? "CONNECTED" : "DISCONNECT");
+    display.printf("MODE: %s", connected ? "PLAY ON" : "PLAY OFF");
     
-    // เส้นแบ่ง (พิกเซลที่ 16 พอดี)
     display.drawLine(0, 16, 127, 16, SSD1306_WHITE);
 
-    // ส่วนล่าง (สีฟ้า - แถว 16-63)
-    display.setTextSize(2);
+    // Body (Blue 17-63px)
+    display.setTextSize(1);
+    
+    // 1. Mouse Tracking
     display.setCursor(0, 22);
-    display.printf("X: %4d", x);
-    display.setCursor(0, 44);
-    display.printf("Y: %4d", y);
+    display.printf("MOUSE  : X:%d Y:%d", mouse_x, mouse_y);
+    
+    // 2. Keyboard Tracking
+    display.setCursor(0, 36);
+    if (key_pressed != 0) {
+        display.printf("KEY    : '%c'", key_pressed);
+    } else {
+        display.printf("KEY    : NONE");
+    }
+    
+    // 3. Volume Master
+    display.setCursor(0, 50);
+    int bar_width = map(volume_pct, 0, 100, 0, 48); // 48 pixels max width for bar
+    display.printf("VOL:%3d%% [", volume_pct);
+    display.setCursor(120, 50);
+    display.print("]");
+    
+    // Draw solid bar for volume
+    display.fillRect(66, 50, bar_width, 7, SSD1306_WHITE);
+
+    display.display();
+}
+
+void display_setting_mode(const char* menu_name, int volume_pct, bool connected) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    
+    display.setCursor(0, 0);
+    display.print("PROFILE: ---");
+    display.setCursor(0, 8);
+    display.printf("MODE: %s", connected ? "SETTING ON" : "SETTING OFF");
+    display.drawLine(0, 16, 127, 16, SSD1306_WHITE);
+    
+    display.setTextSize(2);
+    display.setCursor(0, 30);
+    display.printf("> %s", menu_name);
     
     display.display();
 }
