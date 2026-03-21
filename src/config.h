@@ -19,3 +19,18 @@
 const int JOY_DEAD_ZONE = 400; // ค่าระยะตายของจอย
 const int MPU_DIVIDER = 512;  // ความไวของ MPU
 const int JOY_DIVIDER = 140;  // ความไวของ Joystick
+
+// --- Global Buttons (Setup Menu) ---
+#define BTN_UP_PIN 13
+#define BTN_DOWN_PIN 12
+#define BTN_OK_PIN 14
+#define BTN_BACK_PIN 27
+
+// --- Configurable Buttons ---
+#define BTN_CONF_1_PIN 17
+#define BTN_CONF_2_PIN 5
+#define BTN_CONF_3_PIN 18
+#define BTN_CONF_4_PIN 19
+
+// --- Potentiometer ---
+#define POT_PIN 33
