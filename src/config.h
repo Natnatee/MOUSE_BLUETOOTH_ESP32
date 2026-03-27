@@ -27,7 +27,7 @@ const int JOY_DIVIDER = 140;  // ความไวของ Joystick
 #define BTN_BACK_PIN 27
 
 // --- Configurable Buttons ---
-#define BTN_CONF_1_PIN 17
+#define BTN_CONF_1_PIN 4
 #define BTN_CONF_2_PIN 5
 #define BTN_CONF_3_PIN 18
 #define BTN_CONF_4_PIN 19
