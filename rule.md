@@ -21,7 +21,7 @@
 - **Slash Commands**:
     - `/upload`: ให้พิมพ์คำสั่ง `pio run -t upload` (⚠️ บังคับ: ต้องเช็ค Boot0=1, Boot1=0 และกดปุ่ม Reset ก่อนสั่ง)
     - `/monitor`: ให้พิมพ์คำสั่ง `pio device monitor -b 115200`
-    - `/flash_monitor`: ให้พิมพ์คำสั่ง `pio run -t upload -t monitor` (⚠️ บังคับ: ต้องเช็ค Boot0=1, Boot1=0 และกดปุ่ม Reset ก่อนสั่ง และต้องมี `delay(6000)` ใน `setup()`)
+    - `/flash_monitor`: ให้พิมพ์คำสั่ง `pio run -t upload -t monitor` (⚠️ บังคับ: ต้องเช็ค Boot0=1, Boot1=0 และกดปุ่ม Reset ก่อนสั่ง และต้องมี `delay(2000)` ใน `setup()`)
 - **Workflow**: หลังผู้ใช้รันเสร็จและส่งผลลัพธ์ (Output) กลับมา ให้วิเคราะห์ผลและดำเนินการตามกฎข้ออื่นๆ ต่อไป
 
 ### 💻 ด้านการจัดการโปรเจกต์ (Project Management)

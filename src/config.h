@@ -34,3 +34,9 @@ const int JOY_DIVIDER = 140;  // ความไวของ Joystick
 
 // --- Potentiometer ---
 #define POT_PIN 33
+
+// --- Force Sensor (FSR402) ---
+#define FSR_ANALOG_PIN 36   // VP - ADC1 (ปลอดภัยกับ Bluetooth)
+#define FSR_DIGITAL_PIN 39  // VN - ADC1 (ปลอดภัยกับ Bluetooth)
+const int FSR_MAX_GRAMS = 5000;  // FSR402 max 5kg = 5000g
+const int FSR_THRESHOLD = 50;    // ADC threshold ขั้นต่ำ (กรองสัญญาณรบกวน)

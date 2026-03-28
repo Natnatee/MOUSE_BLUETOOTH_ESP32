@@ -5,9 +5,6 @@
 #include "display_module.h"
 
 void setup() {
-    // กฎ rule.md: สำหรับ /flash_monitor ต้องมี delay(6000)
-    delay(6000);
-    
     // เริ่มระบบจอ
     display_init();
     

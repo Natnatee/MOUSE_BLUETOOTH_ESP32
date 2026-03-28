@@ -4,17 +4,18 @@
 2. **SETTING Mode**: หน้าต่างปรับแต่งสำหรับเปลี่ยน Profile และจับคู่ Input เข้าทิศทางเมาส์/ปุ่มกดคีย์บอร์ดแบบ Dynamic
 
 ## 🏗️ 1.5 Architecture (Modular Design)
-- **Data Providers**: `mpu_sensor`, `joystick_input`, `hw_inputs` (ปุ่ม x8, Potentiometer x1)
+- **Data Providers**: `mpu_sensor`, `joystick_input`, `hw_inputs` (ปุ่ม x8, Potentiometer x1), `force_sensor` (FSR402)
 - **Logic Controllers**: 
    - `input_controller` (ตัวตัดสินใจหลักและคุม UI Refresh Rate 10FPS)
    - `profile_manager` (จัดการข้อมูล Profile การผูกปุ่ม)
    - `state_manager` (คุม FSM สลับโหมด)
 - **Action Providers**: `mouse_bt` (อัปเกรดเป็น `BleCombo` ส่งค่าทั้งเมาส์และคีย์บอร์ดสื่อมีเดีย)
-- **Display Provider**: `display_module` (OLED 3 โซน แสดง Profile, เมาส์, คีย์ และแถบเสียง)
+- **Display Provider**: `display_module` (OLED 3 โซน แสดง Profile, เมาส์, คีย์, แถบเสียง% และ Force)
 
 ## 🔌 2. Hardware Specs
 - **MCU**: ESP32 Classic (Original Chip)
 - **Sensor**: MPU6050 (GY-521) 3-Axis Gyro & Accelerometer
+- **Force Sensor**: FSR402 (0-5kg)
 - **Connection**: Bluetooth Composite HID (Keyboard + Mouse)
 - **Display**: OLED 0.96" I2C
 
@@ -35,6 +36,8 @@
 | **Config Btn 2** | GPIO 5 | Custom Key | Digital In (Pull-up) |
 | **Config Btn 3** | GPIO 18 | Custom Key | Digital In (Pull-up) |
 | **Config Btn 4** | GPIO 19 | Custom Key | Digital In (Pull-up) |
+| **Force Sensor (Analog)** | GPIO 36 (VP) | Force ADC | ADC1 |
+| **Force Sensor (Digital)** | GPIO 39 (VN) | Force Digital | Digital In |
 
 ## 📚 4. Library Specs
 - `blackketter/ESP32-BLE-Combo` (คีย์บอร์ด+เมาส์ในตัวเดียว)
@@ -50,7 +53,8 @@
 - [x] Initializing project structure & GitHub
 - [x] Bluetooth HID Combo Working (Mouse + Keyboard Working)
 - [x] FSM & Dynamic Profile Manager 
-- [x] Display Module with Volume Bar UI and 10 FPS Rate Limiter
+- [x] Display Module with Volume Bar UI (%) + Force Sensor Display and 10 FPS Rate Limiter
+- [x] Force Sensor (FSR402) Module Integrated
 - [x] HW Inputs (Debounce 250ms & Multiple Buttons/Potentiometer) 
 - [ ] Connect Potentiometer to actual `KEY_MEDIA_VOLUME` 
 - [ ] Implement `SETTING Mode` UI 

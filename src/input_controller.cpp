@@ -8,6 +8,7 @@
 #include "profile_manager.h"
 #include "state_manager.h"
 #include "hw_inputs.h"
+#include "force_sensor.h"
 
 bool mpu_available = false;
 
@@ -26,10 +27,11 @@ void request_ui_update() {
     SystemState state = get_current_state();
     bool conn = mouse_bt_is_connected();
     int current_vol = map(hw_read_pot(), 0, 4095, 0, 100);
+    int current_force = force_read_analog();
     
     if (state == SystemState::STATE_PLAY) {
         ProfileData* p = get_current_profile();
-        display_play_mode(p->name, conn, last_mouse_x, last_mouse_y, last_key_pressed, current_vol);
+        display_play_mode(p->name, conn, last_mouse_x, last_mouse_y, last_key_pressed, current_vol, current_force);
     } else {
         display_setting_mode("MAIN MENU", current_vol, conn);
     }
@@ -39,6 +41,7 @@ void controller_init() {
     mpu_available = mpu_init();
     joystick_init();
     hw_inputs_init();
+    force_sensor_init();
     profile_manager_init();
     state_manager_init();
     
@@ -112,6 +115,14 @@ void controller_update() {
     int curr_vol = map(hw_read_pot(), 0, 4095, 0, 100);
     if (abs(curr_vol - last_vol_disp) >= 2) {
         last_vol_disp = curr_vol;
+        ui_needs_update = true;
+    }
+
+    // Track Force Sensor for UI Changes
+    static int last_force_disp = 0;
+    int curr_force = force_read_analog();
+    if (abs(curr_force - last_force_disp) >= 10) {
+        last_force_disp = curr_force;
         ui_needs_update = true;
     }
 
