@@ -21,6 +21,7 @@ struct ProfileData {
 
 void profile_manager_init();
 ProfileData* get_current_profile();
+ProfileData* get_profile(uint8_t index);
 void next_profile();
 void prev_profile();
 void save_profiles(); 

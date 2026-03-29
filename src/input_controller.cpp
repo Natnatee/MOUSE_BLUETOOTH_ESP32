@@ -24,6 +24,9 @@ bool last_btn_back = false;
 int last_mouse_x = 0;
 int last_mouse_y = 0;
 char last_key_pressed = 0;
+int setting_menu_idx = 0;
+int setting_profile_menu_idx = 0;
+int selected_profile_idx = 0;
 
 void request_ui_update() {
     SystemState state = get_current_state();
@@ -34,8 +37,13 @@ void request_ui_update() {
     if (state == SystemState::STATE_PLAY) {
         ProfileData* p = get_current_profile();
         display_play_mode(p->name, conn, last_mouse_x, last_mouse_y, last_key_pressed, current_vol, current_force);
-    } else {
-        display_setting_mode("MAIN MENU", current_vol, conn);
+    } else if (state == SystemState::STATE_SETTING_MAIN) {
+        display_setting_main(setting_menu_idx, conn);
+    } else if (state == SystemState::STATE_SETTING_PROFILE) {
+        ProfileData* p = get_profile(selected_profile_idx);
+        if (p) {
+            display_setting_profile(p->name, setting_profile_menu_idx, conn);
+        }
     }
 }
 
@@ -71,13 +79,49 @@ void process_global_buttons(ButtonState bs) {
         else if (bs.down && !last_btn_down) { next_profile(); acted = true; }
         else if (bs.back && !last_btn_back) { 
             switch_state(SystemState::STATE_SETTING_MAIN); 
+            setting_menu_idx = 0; // Reset cursor
             acted = true; 
         }
     } 
     else if (state == SystemState::STATE_SETTING_MAIN) {
-        if (bs.back && !last_btn_back) { 
+        if (bs.up && !last_btn_up) {
+            if (setting_menu_idx > 0) setting_menu_idx--;
+            else setting_menu_idx = MAX_PROFILES; // Wrap around to bottom
+            acted = true;
+        }
+        else if (bs.down && !last_btn_down) {
+            if (setting_menu_idx < MAX_PROFILES) setting_menu_idx++;
+            else setting_menu_idx = 0; // Wrap around to top
+            acted = true;
+        }
+        else if (bs.ok && !last_btn_ok) {
+            if (setting_menu_idx > 0) { // If it's an existing profile (1, 2, 3)
+                selected_profile_idx = setting_menu_idx - 1;
+                setting_profile_menu_idx = 0; // Reset sub-menu cursor
+                switch_state(SystemState::STATE_SETTING_PROFILE);
+                acted = true;
+            }
+            // For setting_menu_idx == 0 (Add New Profile), we can implement later.
+        }
+        else if (bs.back && !last_btn_back) { 
             switch_state(SystemState::STATE_PLAY); 
             acted = true; 
+        }
+    }
+    else if (state == SystemState::STATE_SETTING_PROFILE) {
+        if (bs.up && !last_btn_up) {
+            if (setting_profile_menu_idx > 0) setting_profile_menu_idx--;
+            else setting_profile_menu_idx = 2; // Wrap around MOUSE, KEYBOARD, DELETE
+            acted = true;
+        }
+        else if (bs.down && !last_btn_down) {
+            if (setting_profile_menu_idx < 2) setting_profile_menu_idx++;
+            else setting_profile_menu_idx = 0;
+            acted = true;
+        }
+        else if (bs.back && !last_btn_back) {
+            switch_state(SystemState::STATE_SETTING_MAIN);
+            acted = true;
         }
     }
 

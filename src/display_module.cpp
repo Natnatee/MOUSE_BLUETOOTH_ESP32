@@ -1,4 +1,5 @@
 #include "display_module.h"
+#include "profile_manager.h"
 
 // ใช้พาสโปรเซสเซอร์เพื่อเช็คแอดเดรส
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -67,20 +68,104 @@ void display_play_mode(const char* profile_name, bool connected, int mouse_x, in
     display.display();
 }
 
-void display_setting_mode(const char* menu_name, int volume_pct, bool connected) {
+void display_setting_main(int cursor_idx, bool connected) {
     display.clearDisplay();
     display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
     
+    // Header (Yellow Zone 0-15px)
+    display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
     display.print("PROFILE: ---");
     display.setCursor(0, 8);
     display.printf("MODE: %s", connected ? "SETTING ON" : "SETTING OFF");
     display.drawLine(0, 16, 127, 16, SSD1306_WHITE);
+
+    // Body (Blue Zone 17-63px)
+    // We can only show 3 items at a time safely
+    int max_display_items = 3;
+    int total_items = MAX_PROFILES + 1; // 4 items: Add + 3 Profiles
     
-    display.setTextSize(2);
-    display.setCursor(0, 30);
-    display.printf("> %s", menu_name);
+    // Calculate display window (pagination)
+    int start_idx = 0;
+    if (cursor_idx >= max_display_items) {
+        start_idx = cursor_idx - max_display_items + 1;
+    }
+    
+    // Safety clamp (in case cursor wrapped from bottom to top)
+    if (start_idx < 0) start_idx = 0;
+    if (start_idx + max_display_items > total_items) start_idx = total_items - max_display_items;
+
+    // Draw up to max_display_items
+    for (int i = 0; i < max_display_items; i++) {
+        int item_idx = start_idx + i;
+        if (item_idx >= total_items) break;
+        
+        // Start Y at 18, each takes 15px
+        int y_pos = 18 + (i * 15);
+        
+        if (item_idx == cursor_idx) {
+            // Highlighted: solid white box, black text
+            display.fillRect(0, y_pos, 128, 13, SSD1306_WHITE);
+            display.setTextColor(SSD1306_BLACK);
+        } else {
+            // Normal: white outline box, white text
+            display.drawRect(0, y_pos, 128, 13, SSD1306_WHITE);
+            display.setTextColor(SSD1306_WHITE);
+        }
+        
+        // Print text inside box, slightly indented
+        display.setCursor(4, y_pos + 3);
+        
+        if (item_idx == 0) {
+            display.print("[+] ADD NEW PROFILE");
+        } else {
+            // Index 1,2,3 mapped to profile 0,1,2
+            ProfileData* p = get_profile(item_idx - 1);
+            if (p != nullptr) {
+                display.print(p->name);
+            }
+        }
+    }
+    
+    display.display();
+}
+
+void display_setting_profile(const char* profile_name, int cursor_idx, bool connected) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    
+    // Header (Yellow Zone 0-15px)
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+    display.printf("PROFILE: %s", profile_name);
+    display.setCursor(0, 8);
+    display.printf("MODE: %s", connected ? "SETTING ON" : "SETTING OFF");
+    display.drawLine(0, 16, 127, 16, SSD1306_WHITE);
+
+    // Body (Blue Zone 17-63px)
+    const char* menu_items[] = {"MOUSE", "KEYBOARD", "DELETE"};
+    int max_items = 3;
+    
+    // Draw 3 boxes
+    for (int i = 0; i < max_items; i++) {
+        // Start Y at 18, each takes 15px
+        int y_pos = 18 + (i * 15);
+        
+        if (i == cursor_idx) {
+            // Highlighted: solid white box, black text
+            display.fillRect(0, y_pos, 128, 13, SSD1306_WHITE);
+            display.setTextColor(SSD1306_BLACK);
+        } else {
+            // Normal: white outline box, white text
+            display.drawRect(0, y_pos, 128, 13, SSD1306_WHITE);
+            display.setTextColor(SSD1306_WHITE);
+        }
+        
+        // Print text inside box, slightly indented
+        display.setCursor(4, y_pos + 3);
+        display.print("> ");
+        display.print(menu_items[i]);
+    }
     
     display.display();
 }

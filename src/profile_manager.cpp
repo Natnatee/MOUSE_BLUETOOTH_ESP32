@@ -33,6 +33,11 @@ ProfileData* get_current_profile() {
     return &profiles[current_profile_idx];
 }
 
+ProfileData* get_profile(uint8_t index) {
+    if (index >= MAX_PROFILES) return nullptr;
+    return &profiles[index];
+}
+
 void next_profile() {
     current_profile_idx = (current_profile_idx + 1) % MAX_PROFILES;
 }
