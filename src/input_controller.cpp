@@ -33,7 +33,7 @@ bool setting_delete_cancel_selected = true;
 bool is_adding_new_profile = false;
 char name_edit_buf[PROFILE_NAME_LEN];
 int name_edit_cursor = 0;
-int name_edit_char_idx = 0; // 0 = space, 1-26 = A-Z
+int name_edit_char_idx = 1; // 0 = space, 1-26 = A-Z, Default to 1 (A)
 
 char get_alphabet_char(int idx) {
     if (idx == 0) return ' ';
@@ -226,6 +226,7 @@ void process_global_buttons(ButtonState bs) {
                 if (name_edit_cursor > 0) {
                     name_edit_cursor--;
                     name_edit_char_idx = get_char_idx(name_edit_buf[name_edit_cursor]);
+                    if (name_edit_char_idx == 0) name_edit_char_idx = 1; // Default to 'A'
                 }
                 acted = true;
             }
