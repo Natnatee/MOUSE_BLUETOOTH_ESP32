@@ -137,21 +137,33 @@ void display_setting_profile(const char* profile_name, int cursor_idx, bool conn
     // Header (Yellow Zone 0-15px)
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
-    display.printf("PROFILE: %s", profile_name);
+    display.printf("PROF: %s", profile_name);
     display.setCursor(0, 8);
     display.printf("MODE: %s", connected ? "SETTING ON" : "SETTING OFF");
     display.drawLine(0, 16, 127, 16, SSD1306_WHITE);
 
     // Body (Blue Zone 17-63px)
-    const char* menu_items[] = {"MOUSE", "KEYBOARD", "DELETE"};
-    int max_items = 3;
+    const char* menu_items[] = {"MOUSE", "KEYBOARD", "NAME", "DELETE"};
+    int max_display_items = 3;
+    int total_items = 4;
     
-    // Draw 3 boxes
-    for (int i = 0; i < max_items; i++) {
+    // Pagination logic
+    int start_idx = 0;
+    if (cursor_idx >= max_display_items) {
+        start_idx = cursor_idx - max_display_items + 1;
+    }
+    if (start_idx < 0) start_idx = 0;
+    if (start_idx + max_display_items > total_items) start_idx = total_items - max_display_items;
+
+    // Draw up to max_display_items
+    for (int i = 0; i < max_display_items; i++) {
+        int item_idx = start_idx + i;
+        if (item_idx >= total_items) break;
+        
         // Start Y at 18, each takes 15px
         int y_pos = 18 + (i * 15);
         
-        if (i == cursor_idx) {
+        if (item_idx == cursor_idx) {
             // Highlighted: solid white box, black text
             display.fillRect(0, y_pos, 128, 13, SSD1306_WHITE);
             display.setTextColor(SSD1306_BLACK);
@@ -164,9 +176,51 @@ void display_setting_profile(const char* profile_name, int cursor_idx, bool conn
         // Print text inside box, slightly indented
         display.setCursor(4, y_pos + 3);
         display.print("> ");
-        display.print(menu_items[i]);
+        display.print(menu_items[item_idx]);
     }
     
+    display.display();
+}
+
+void display_setting_delete_confirm(const char* profile_name, bool is_cancel_selected) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+
+    // Header
+    display.setCursor(0, 0);
+    display.print("--- WARNING ---");
+    display.drawLine(0, 9, 127, 9, SSD1306_WHITE);
+
+    // Body
+    display.setCursor(0, 16);
+    display.setTextColor(SSD1306_WHITE);
+    display.print("Delete Profile?");
+    display.setCursor(0, 26);
+    display.printf("'%s'", profile_name);
+
+    // CANCEL button (Left)
+    if (is_cancel_selected) {
+        display.fillRect(6, 45, 54, 14, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+    } else {
+        display.drawRect(6, 45, 54, 14, SSD1306_WHITE);
+        display.setTextColor(SSD1306_WHITE);
+    }
+    display.setCursor(15, 48);
+    display.print("CANCEL");
+
+    // DELETE button (Right)
+    if (!is_cancel_selected) {
+        display.fillRect(68, 45, 54, 14, SSD1306_WHITE);
+        display.setTextColor(SSD1306_BLACK);
+    } else {
+        display.drawRect(68, 45, 54, 14, SSD1306_WHITE);
+        display.setTextColor(SSD1306_WHITE);
+    }
+    display.setCursor(78, 48);
+    display.print("DELETE");
+
     display.display();
 }
 

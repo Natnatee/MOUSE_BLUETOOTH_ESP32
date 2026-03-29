@@ -7,7 +7,8 @@ enum class SystemState {
     STATE_SETTING_PROFILE,
     STATE_SETTING_MOUSE,
     STATE_SETTING_KEYBOARD,
-    STATE_SETTING_NAME
+    STATE_SETTING_NAME,
+    STATE_SETTING_DELETE_CONFIRM
 };
 
 void state_manager_init();

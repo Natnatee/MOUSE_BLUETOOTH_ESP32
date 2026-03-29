@@ -27,6 +27,7 @@ char last_key_pressed = 0;
 int setting_menu_idx = 0;
 int setting_profile_menu_idx = 0;
 int selected_profile_idx = 0;
+bool setting_delete_cancel_selected = true;
 
 void request_ui_update() {
     SystemState state = get_current_state();
@@ -43,6 +44,11 @@ void request_ui_update() {
         ProfileData* p = get_profile(selected_profile_idx);
         if (p) {
             display_setting_profile(p->name, setting_profile_menu_idx, conn);
+        }
+    } else if (state == SystemState::STATE_SETTING_DELETE_CONFIRM) {
+        ProfileData* p = get_profile(selected_profile_idx);
+        if (p) {
+            display_setting_delete_confirm(p->name, setting_delete_cancel_selected);
         }
     }
 }
@@ -111,16 +117,48 @@ void process_global_buttons(ButtonState bs) {
     else if (state == SystemState::STATE_SETTING_PROFILE) {
         if (bs.up && !last_btn_up) {
             if (setting_profile_menu_idx > 0) setting_profile_menu_idx--;
-            else setting_profile_menu_idx = 2; // Wrap around MOUSE, KEYBOARD, DELETE
+            else setting_profile_menu_idx = 3; // Wrap around MOUSE, KEYBOARD, NAME, DELETE
             acted = true;
         }
         else if (bs.down && !last_btn_down) {
-            if (setting_profile_menu_idx < 2) setting_profile_menu_idx++;
+            if (setting_profile_menu_idx < 3) setting_profile_menu_idx++;
             else setting_profile_menu_idx = 0;
+            acted = true;
+        }
+        else if (bs.ok && !last_btn_ok) {
+            if (setting_profile_menu_idx == 3) { // DELETE
+                setting_delete_cancel_selected = true; // Default to cancel
+                switch_state(SystemState::STATE_SETTING_DELETE_CONFIRM);
+            }
             acted = true;
         }
         else if (bs.back && !last_btn_back) {
             switch_state(SystemState::STATE_SETTING_MAIN);
+            acted = true;
+        }
+    }
+    else if (state == SystemState::STATE_SETTING_DELETE_CONFIRM) {
+        // Use Up/Down logic to mimic Left/Right layout behavior
+        if ((bs.up && !last_btn_up) || (bs.down && !last_btn_down)) {
+            setting_delete_cancel_selected = !setting_delete_cancel_selected;
+            acted = true;
+        }
+        else if (bs.ok && !last_btn_ok) {
+            if (!setting_delete_cancel_selected) {
+                // TODO: Actual delete logic here
+                Serial.println("Profile Deleted!");
+            }
+            // Regardless of cancel or delete, go back to MAIN menu (since it's deleted, profile is gone)
+            // Or go back to profile menu if cancel? Let's go to Profile Menu on Cancel, and Main Menu on Delete
+            if (setting_delete_cancel_selected) {
+                switch_state(SystemState::STATE_SETTING_PROFILE);
+            } else {
+                switch_state(SystemState::STATE_SETTING_MAIN);
+            }
+            acted = true;
+        }
+        else if (bs.back && !last_btn_back) {
+            switch_state(SystemState::STATE_SETTING_PROFILE);
             acted = true;
         }
     }
