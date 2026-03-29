@@ -56,12 +56,13 @@
 - [x] Display Module with Volume Bar UI (%) + Force Sensor Display and 10 FPS Rate Limiter
 - [x] Force Sensor (FSR402) Module Integrated
 - [x] HW Inputs (Debounce 250ms & Multiple Buttons/Potentiometer) 
-- [ ] Connect Potentiometer to actual `KEY_MEDIA_VOLUME` 
-- [ ] Implement `SETTING Mode` UI 
-- [ ] Save/Load Profiles with `Preferences`
+- [x] Connect Potentiometer to actual `KEY_MEDIA_VOLUME` (Synced with Host)
+- [x] Implement `SETTING Mode` UI (Main Menu, Profile Sub-menu, Name Edit, Delete)
+- [ ] Save/Load Profiles with `Preferences` (Persistent Storage)
 
 ## 📜 7. Issues & Solutions Log
 - **[Fix] Flash Memory น้อยไป**: เปลี่ยน `board_build.partitions = huge_app.csv` 
 - **[Fix] เมาส์ไม่ขยับ/ปุ่มไม่ขึ้นเมื่อเปลี่ยนไลบรารี**: OS จำค่า Device Descriptor เก่า ต้องสั่ง Remove Device ออกาก Bluetooth Windows ก่อนเชื่อมต่อใหม่
 - **[Fix] ปุ่มสลับ Profile เบิ้ลข้ามหน้า**: ใส่หน่วงเวลา Debounce 250ms 
 - **[Fix] หน้าจอ OLED กระตุก/เมาส์หน่วง**: จับแยก `ui_needs_update` ไว้และครอบด้วย `last_ui_refresh > 100ms` (10 FPS Limit)
+- **[Fix] แก้ไขชื่อ Profile**: ปรับปรุงให้ตัวอักษรที่ขึ้นมาใหม่ (ตำแหน่งว่าง) เริ่มต้นที่ 'A' เสมอ เพื่อความสะดวกในการพิมพ์

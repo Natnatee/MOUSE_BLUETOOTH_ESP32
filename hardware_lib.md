@@ -1,57 +1,58 @@
-# 📟 MCU Specification: STM32F103C6 (Bluepill)
+# 📟 MCU Specification: ESP32 (Classic)
 
 ### 📋 General Specs
-- **Core:** ARM Cortex-M3
-- **Max Clock:** 72 MHz
-- **Default Flash:** 32 KB (Verified)
-- **SRAM:** 10 KB
-- **Voltage:** 2.0V - 3.6V (Standard 3.3V)
+- **Core:** Xtensa® Dual-Core 32-bit LX6
+- **Max Clock:** 240 MHz
+- **Flash:** 4 MB (Used with `huge_app.csv` partition)
+- **SRAM:** 520 KB
+- **Voltage:** 3.0V - 3.6V (Standard 3.3V)
+- **Built-in:** Bluetooth 4.2 (Legacy & BLE), Wi-Fi
 
-### 🔌 Detailed Pinout & Peripheral Reference
-| Peripheral | Pins | 5V Tolerant? | Description |
+### 🔌 Detailed Pinout & Peripheral Reference (For this Project)
+| Peripheral | Pins | Function | Description |
 |---|---|---|---|
-| **UART1** | PA9 (TX), PA10 (RX) | **Yes** | Main Serial (Used for Upload/Log) |
-| **UART2** | PA2 (TX), PA3 (RX) | **Yes** | Secondary Serial |
-| **I2C1** | PB6 (SCL), PB7 (SDA) | **Yes** | Standard I2C Port |
-| **SPI1** | PA5 (SCK), PA6 (MISO), PA7 (MOSI) | No | High Speed Serial Peripheral |
-| **ADC1/2** | PA0 - PA7, PB0, PB1 | No | 12-bit Analog Input (Max 3.3V) |
-| **USB** | PA11 (D-), PA12 (D+) | **Yes** | USB Full Speed |
-| **LED** | PC13 | No | Built-in LED (Active LOW) |
+| **I2C (Wire)** | GPIO 21 (SDA), GPIO 22 (SCL) | Bus | MPU6050 & OLED 0.96" |
+| **ADC1** | GPIO 34 (VRX), 35 (VRY) | Analog In | Joystick Axis |
+| **ADC1** | GPIO 33 | Analog In | Potentiometer (Volume Bar) |
+| **ADC1** | GPIO 36 (VP) | Analog In | FSR402 Force Sensor Data |
+| **Digital In** | GPIO 13, 12, 14, 27 | UI Setup | Navigation Buttons (Up, Down, OK, Back) |
+| **Digital In** | GPIO 17, 5, 18, 19 | Config | Custom Profile Buttons (1-4) |
+| **Digital In** | GPIO 32 | Switch | Joystick Click |
+| **Digital In** | GPIO 39 (VN) | Switch | Force Sensor Digital Signal |
 
 ### 🛠️ External Hardware Components
-1. **Button Matrix 4x4**: 16 tactile buttons for control and data mapping.
-2. **LEDs (5 Colors)**:
-   - Red (🔴), Yellow (🟡), Green (🟢), Blue (🔵), White (⚪)
-   - Used for Profile binary display and Status signals.
-3. **IR Send**: High-power IR LED (typically driven via transistor).
-4. **IR Receive**: IR Receiver module (e.g., TSOP series) for learning signals.
-5. **Power Module**: 
-   - Battery Holder (1.5V)
-   - Boost Converter (Step-up to 5V) for stable operation.
+1. **OLED 0.96" (SSD1306)**: 128x64 pixels for UI Display.
+2. **MPU6050**: 6-Axis motion sensor for mouse movement.
+3. **FSR402**: Force Sensitive Resistor for pressure detection.
+4. **Joystick**: Standard 2-axis for navigation/mouse control.
+5. **Potentiometer**: 10k Ohm for volume control.
 
-### 📚 Libraries Used
-| Library Name | Version | Purpose |
-|---|---|---|
-| **IRremote** | ^4.3.1 | Core IR send/receive logic |
-| **Keypad** | (TBD) | Handling 4x4 Matrix scanning |
-| **EEPROM (Emulated)** | Built-in | Saving IR profiles to Flash |
+### 📚 Libraries Used (ESP32 Project)
+| Library Name | Purpose |
+|---|---|
+| **NimBLE-Arduino** | Efficient BLE stack for ESP32 |
+| **ESP32-NimBLE-Combo** | Bluetooth HID Keyboard + Mouse combo |
+| **MPU6050** | Motion sensor reading |
+| **Adafruit SSD1306** | OLED display driver |
+| **Adafruit GFX** | Graphics core for UI |
 
 ### ⚙️ Recommended PlatformIO Config
 ```ini
-platform = ststm32
-board = bluepill_f103c6
+platform = espressif32
+board = esp32dev
 framework = arduino
-upload_protocol = stlink
+board_build.partitions = huge_app.csv
 monitor_speed = 115200
 lib_deps =
-    z3t0/IRremote@^4.3.1
+    h2zero/NimBLE-Arduino @ ^1.4.1
+    https://github.com/TheNitek/ESP32-NimBLE-Combo.git
+    electroniccats/MPU6050 @ ^1.3.1
+    adafruit/Adafruit SSD1306 @ ^2.5.7
 ```
 
 ### ⚠️ Common Hardware Issues / Tips
-- **Bootloader Mode (Mandatory for UART):** 
-    1. ปรับ Jumper: **Boot0 = 1, Boot1 = 0**
-    2. **กดปุ่ม Reset** บนบอร์ด (เพื่อเข้าสู่ Bootloader Mode)
-    3. จึงจะเริ่มสั่ง Flash โค้ดได้
-- **Flash Protection:** ชิป C6 มี Flash น้อย (32KB) ควรระวังขนาดของ IR buffer หากใช้โหมด RAW
-- **Wait for Serial:** เมื่อใช้ `pio run -t upload -t monitor` ควรใส่ `delay(6000)` ใน `setup()` เสมอ
-- **ADC Warning:** ห้ามจ่ายไฟเกิน 3.3V เข้าขา ADC เด็ดขาด (ขาเหล่านี้ไม่ 5V-Tolerant)
+- **Partition Table**: ESP32 BLE/NimBLE libraries are large. Use `huge_app.csv` to ensure enough space for code.
+- **Power Consumption**: Bluetooth + OLED can draw significant current. Use a stable 5V source (via Vin) or high-quality Battery.
+- **Boot Mode**: Hold **BOOT** button while uploading if the auto-reset circuit is not working.
+- **Bluetooth Remove**: if connection fails after flashing, **Unpair/Remove** the device from Windows Bluetooth settings and re-pair.
+- **ADC Noise**: Use averaging or filtering for Joystick and FSR readings for smoother UI display.
