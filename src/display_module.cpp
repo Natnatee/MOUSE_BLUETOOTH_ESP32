@@ -83,7 +83,7 @@ void display_setting_main(int cursor_idx, bool connected) {
     // Body (Blue Zone 17-63px)
     // We can only show 3 items at a time safely
     int max_display_items = 3;
-    int total_items = MAX_PROFILES + 1; // 4 items: Add + 3 Profiles
+    int total_items = get_active_profiles_count() + 1; // Add item + active profiles
     
     // Calculate display window (pagination)
     int start_idx = 0;
@@ -221,6 +221,59 @@ void display_setting_delete_confirm(const char* profile_name, bool is_cancel_sel
     display.setCursor(78, 48);
     display.print("DELETE");
 
+    display.display();
+}
+
+void display_setting_name(const char* temp_name, int cursor_pos, char current_char, bool blink_state) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+
+    // Header
+    display.setCursor(0, 0);
+    display.print("--- EDIT NAME ---");
+    display.drawLine(0, 9, 127, 9, SSD1306_WHITE);
+
+    // Instructions
+    display.setCursor(0, 16);
+    display.print("OK:Next | Long:Back");
+    
+    // Draw characters (Max 11 visible chars)
+    display.setTextSize(2);
+    int start_x = 0;
+    int start_y = 35;
+    
+    for (int i = 0; i < PROFILE_NAME_LEN - 1; i++) {
+        char c;
+        if (i < cursor_pos) {
+            c = temp_name[i];
+        } else if (i == cursor_pos) {
+            c = current_char;
+        } else {
+            c = '_'; // Empty slot indicator
+        }
+        
+        int char_x = start_x + (i * 11); // 11px per char
+        
+        if (i == cursor_pos) {
+            if (blink_state) {
+                // Invert colors for cursor
+                display.fillRect(char_x, start_y, 11, 15, SSD1306_WHITE);
+                display.setTextColor(SSD1306_BLACK);
+            } else {
+                display.setTextColor(SSD1306_WHITE);
+            }
+        } else {
+            display.setTextColor(SSD1306_WHITE);
+        }
+        
+        display.setCursor(char_x, start_y);
+        display.print(c);
+        
+        // Reset color if changed
+        display.setTextColor(SSD1306_WHITE);
+    }
+    
     display.display();
 }
 

@@ -10,4 +10,5 @@ void display_play_mode(const char* profile_name, bool connected, int mouse_x, in
 void display_setting_main(int cursor_idx, bool connected);
 void display_setting_profile(const char* profile_name, int cursor_idx, bool connected);
 void display_setting_delete_confirm(const char* profile_name, bool is_cancel_selected);
+void display_setting_name(const char* temp_name, int cursor_pos, char current_char, bool blink_state);
 void display_clear();

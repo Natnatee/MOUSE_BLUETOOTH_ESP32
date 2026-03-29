@@ -1,59 +1,84 @@
 #include "profile_manager.h"
 
-// Default Mock Profiles
-ProfileData profiles[MAX_PROFILES] = {
-    {
-        "PROFILE 01",
-        InputSource::MPU6050,      // Mouse controlled by MPU
-        InputSource::JOYSTICK,     // Keyboard (Arrows) controlled by Joystick
-        5                          // Sensitivity
-    },
-    {
-        "PROFILE 02",
-        InputSource::JOYSTICK,     // Mouse controlled by Joystick
-        InputSource::BUTTON_SET_2, // Keyboard controlled by Buttons
-        3
-    },
-    {
-        "PROFILE 03",
-        InputSource::NONE,
-        InputSource::NONE,
-        1
-    }
-};
-
+ProfileData profiles[MAX_PROFILES];
 uint8_t current_profile_idx = 0;
+uint8_t active_profiles_count = 0;
 
 void profile_manager_init() {
-    // Eventually load from Preferences here
-    // load_profiles();
+    active_profiles_count = 3;
+    
+    strncpy(profiles[0].name, "PROFILE 01", PROFILE_NAME_LEN);
+    profiles[0].mouse_input = InputSource::MPU6050;
+    profiles[0].keyboard_input = InputSource::JOYSTICK;
+    profiles[0].mpu_sensitivity = 5;
+
+    strncpy(profiles[1].name, "PROFILE 02", PROFILE_NAME_LEN);
+    profiles[1].mouse_input = InputSource::JOYSTICK;
+    profiles[1].keyboard_input = InputSource::BUTTON_SET_2;
+    profiles[1].mpu_sensitivity = 3;
+
+    strncpy(profiles[2].name, "PROFILE 03", PROFILE_NAME_LEN);
+    profiles[2].mouse_input = InputSource::NONE;
+    profiles[2].keyboard_input = InputSource::NONE;
+    profiles[2].mpu_sensitivity = 1;
+}
+
+uint8_t get_active_profiles_count() {
+    return active_profiles_count;
+}
+
+bool add_new_profile(const char* name) {
+    if (active_profiles_count >= MAX_PROFILES) return false;
+    
+    int idx = active_profiles_count;
+    strncpy(profiles[idx].name, name, PROFILE_NAME_LEN);
+    profiles[idx].name[PROFILE_NAME_LEN - 1] = '\0';
+    
+    profiles[idx].mouse_input = InputSource::NONE;
+    profiles[idx].keyboard_input = InputSource::NONE;
+    profiles[idx].mpu_sensitivity = 5;
+    
+    active_profiles_count++;
+    return true;
+}
+
+void delete_profile(uint8_t index) {
+    if (index >= active_profiles_count || active_profiles_count <= 1) return; // Prevent deleting the last profile
+    
+    for (int i = index; i < active_profiles_count - 1; i++) {
+        profiles[i] = profiles[i+1];
+    }
+    
+    active_profiles_count--;
+    
+    if (current_profile_idx >= active_profiles_count) {
+        current_profile_idx = active_profiles_count - 1;
+    }
 }
 
 ProfileData* get_current_profile() {
+    if (active_profiles_count == 0) return nullptr;
     return &profiles[current_profile_idx];
 }
 
 ProfileData* get_profile(uint8_t index) {
-    if (index >= MAX_PROFILES) return nullptr;
+    if (index >= active_profiles_count) return nullptr;
     return &profiles[index];
 }
 
 void next_profile() {
-    current_profile_idx = (current_profile_idx + 1) % MAX_PROFILES;
+    if (active_profiles_count == 0) return;
+    current_profile_idx = (current_profile_idx + 1) % active_profiles_count;
 }
 
 void prev_profile() {
+    if (active_profiles_count == 0) return;
     if (current_profile_idx == 0) {
-        current_profile_idx = MAX_PROFILES - 1;
+        current_profile_idx = active_profiles_count - 1;
     } else {
         current_profile_idx--;
     }
 }
 
-void save_profiles() {
-    // TODO: Implement Preferences save
-}
-
-void load_profiles() {
-    // TODO: Implement Preferences load
-}
+void save_profiles() {}
+void load_profiles() {}

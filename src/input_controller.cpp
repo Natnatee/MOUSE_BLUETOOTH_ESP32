@@ -29,6 +29,24 @@ int setting_profile_menu_idx = 0;
 int selected_profile_idx = 0;
 bool setting_delete_cancel_selected = true;
 
+// Name Edit State trackers
+bool is_adding_new_profile = false;
+char name_edit_buf[PROFILE_NAME_LEN];
+int name_edit_cursor = 0;
+int name_edit_char_idx = 0; // 0 = space, 1-26 = A-Z
+
+char get_alphabet_char(int idx) {
+    if (idx == 0) return ' ';
+    if (idx >= 1 && idx <= 26) return (char)('A' + idx - 1);
+    return ' ';
+}
+
+int get_char_idx(char c) {
+    if (c >= 'A' && c <= 'Z') return (c - 'A' + 1);
+    if (c >= 'a' && c <= 'z') return (c - 'a' + 1);
+    return 0; // Space
+}
+
 void request_ui_update() {
     SystemState state = get_current_state();
     bool conn = mouse_bt_is_connected();
@@ -50,6 +68,10 @@ void request_ui_update() {
         if (p) {
             display_setting_delete_confirm(p->name, setting_delete_cancel_selected);
         }
+    } else if (state == SystemState::STATE_SETTING_NAME) {
+        bool blink = (millis() / 500) % 2 == 0;
+        char current_char = get_alphabet_char(name_edit_char_idx);
+        display_setting_name(name_edit_buf, name_edit_cursor, current_char, blink);
     }
 }
 
@@ -92,11 +114,11 @@ void process_global_buttons(ButtonState bs) {
     else if (state == SystemState::STATE_SETTING_MAIN) {
         if (bs.up && !last_btn_up) {
             if (setting_menu_idx > 0) setting_menu_idx--;
-            else setting_menu_idx = MAX_PROFILES; // Wrap around to bottom
+            else setting_menu_idx = get_active_profiles_count(); // Wrap around to bottom
             acted = true;
         }
         else if (bs.down && !last_btn_down) {
-            if (setting_menu_idx < MAX_PROFILES) setting_menu_idx++;
+            if (setting_menu_idx < get_active_profiles_count()) setting_menu_idx++;
             else setting_menu_idx = 0; // Wrap around to top
             acted = true;
         }
@@ -106,8 +128,16 @@ void process_global_buttons(ButtonState bs) {
                 setting_profile_menu_idx = 0; // Reset sub-menu cursor
                 switch_state(SystemState::STATE_SETTING_PROFILE);
                 acted = true;
+            } else { // setting_menu_idx == 0 (Add New Profile)
+                if (get_active_profiles_count() < MAX_PROFILES) {
+                    is_adding_new_profile = true;
+                    memset(name_edit_buf, 0, PROFILE_NAME_LEN);
+                    name_edit_cursor = 0;
+                    name_edit_char_idx = 1; // Start with 'A'
+                    switch_state(SystemState::STATE_SETTING_NAME);
+                    acted = true;
+                }
             }
-            // For setting_menu_idx == 0 (Add New Profile), we can implement later.
         }
         else if (bs.back && !last_btn_back) { 
             switch_state(SystemState::STATE_PLAY); 
@@ -130,6 +160,18 @@ void process_global_buttons(ButtonState bs) {
                 setting_delete_cancel_selected = true; // Default to cancel
                 switch_state(SystemState::STATE_SETTING_DELETE_CONFIRM);
             }
+            else if (setting_profile_menu_idx == 2) { // NAME
+                ProfileData* p = get_profile(selected_profile_idx);
+                if (p) {
+                    memset(name_edit_buf, 0, PROFILE_NAME_LEN);
+                    strncpy(name_edit_buf, p->name, PROFILE_NAME_LEN - 1);
+                    name_edit_cursor = strlen(name_edit_buf);
+                    if (name_edit_cursor >= PROFILE_NAME_LEN - 1) name_edit_cursor = PROFILE_NAME_LEN - 2;
+                    name_edit_char_idx = get_char_idx(name_edit_buf[name_edit_cursor]);
+                    if (name_edit_char_idx == 0) name_edit_char_idx = 1; // Default to 'A'
+                }
+                switch_state(SystemState::STATE_SETTING_NAME);
+            }
             acted = true;
         }
         else if (bs.back && !last_btn_back) {
@@ -145,20 +187,87 @@ void process_global_buttons(ButtonState bs) {
         }
         else if (bs.ok && !last_btn_ok) {
             if (!setting_delete_cancel_selected) {
-                // TODO: Actual delete logic here
-                Serial.println("Profile Deleted!");
-            }
-            // Regardless of cancel or delete, go back to MAIN menu (since it's deleted, profile is gone)
-            // Or go back to profile menu if cancel? Let's go to Profile Menu on Cancel, and Main Menu on Delete
-            if (setting_delete_cancel_selected) {
-                switch_state(SystemState::STATE_SETTING_PROFILE);
-            } else {
+                delete_profile(selected_profile_idx);
                 switch_state(SystemState::STATE_SETTING_MAIN);
+            } else {
+                switch_state(SystemState::STATE_SETTING_PROFILE);
             }
             acted = true;
         }
         else if (bs.back && !last_btn_back) {
             switch_state(SystemState::STATE_SETTING_PROFILE);
+            acted = true;
+        }
+    }
+    else if (state == SystemState::STATE_SETTING_NAME) {
+        if (bs.up && !last_btn_up) {
+            name_edit_char_idx++;
+            if (name_edit_char_idx > 26) name_edit_char_idx = 0;
+            acted = true;
+        }
+        else if (bs.down && !last_btn_down) {
+            if (name_edit_char_idx > 0) name_edit_char_idx--;
+            else name_edit_char_idx = 26;
+            acted = true;
+        }
+        
+        static unsigned long name_ok_press_time = 0;
+        static bool name_ok_long_handled = false;
+        
+        if (bs.ok && !last_btn_ok) {
+            name_ok_press_time = millis();
+            name_ok_long_handled = false;
+        }
+        
+        if (bs.ok && last_btn_ok) {
+            if (!name_ok_long_handled && (millis() - name_ok_press_time > 800)) {
+                // Long Press -> Backspace
+                name_ok_long_handled = true;
+                if (name_edit_cursor > 0) {
+                    name_edit_cursor--;
+                    name_edit_char_idx = get_char_idx(name_edit_buf[name_edit_cursor]);
+                }
+                acted = true;
+            }
+        }
+        
+        if (!bs.ok && last_btn_ok) {
+            if (!name_ok_long_handled && (millis() - name_ok_press_time > 20)) {
+                // Short Press -> Next
+                name_edit_buf[name_edit_cursor] = get_alphabet_char(name_edit_char_idx);
+                if (name_edit_cursor < PROFILE_NAME_LEN - 2) {
+                    name_edit_cursor++;
+                    name_edit_char_idx = get_char_idx(name_edit_buf[name_edit_cursor]); 
+                    if (name_edit_char_idx == 0) name_edit_char_idx = 1; // Default to 'A'
+                }
+                acted = true;
+            }
+        }
+        
+        if (bs.back && !last_btn_back) {
+            // Guarantee null termination at the end of buffer length
+            name_edit_buf[PROFILE_NAME_LEN - 1] = '\0'; 
+            
+            // If the user presses back, the current un-confirmed char is IGNORED, 
+            // but we ensure the string cuts off cleanly at the cursor
+            name_edit_buf[name_edit_cursor] = '\0';
+            
+            if (is_adding_new_profile) {
+                if (add_new_profile(name_edit_buf)) {
+                    selected_profile_idx = get_active_profiles_count() - 1;
+                    setting_profile_menu_idx = 0; // Start focus on MOUSE
+                    switch_state(SystemState::STATE_SETTING_PROFILE);
+                } else {
+                    switch_state(SystemState::STATE_SETTING_MAIN); // Failed
+                }
+                is_adding_new_profile = false;
+            } else {
+                ProfileData* p = get_profile(selected_profile_idx);
+                if (p) {
+                    strncpy(p->name, name_edit_buf, PROFILE_NAME_LEN);
+                }
+                switch_state(SystemState::STATE_SETTING_PROFILE);
+            }
             acted = true;
         }
     }
