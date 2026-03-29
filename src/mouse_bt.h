@@ -24,3 +24,7 @@ void mouse_release(uint8_t button);
 void keyboard_press(uint8_t key);
 void keyboard_release(uint8_t key);
 void keyboard_release_all();
+
+// Media controls
+void keyboard_volume_up();
+void keyboard_volume_down();

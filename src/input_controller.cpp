@@ -11,6 +11,8 @@
 #include "force_sensor.h"
 
 bool mpu_available = false;
+bool volume_synced = false;
+int last_vol_sent = 0;
 
 // Global buttons
 bool last_btn_up = false;
@@ -92,15 +94,41 @@ void process_global_buttons(ButtonState bs) {
 
 void controller_update() {
     static bool last_connected = false;
+    static bool pending_sync = false;
+    static unsigned long connect_time = 0;
+    
     bool current_connected = mouse_bt_is_connected();
     if (current_connected != last_connected) {
         if (current_connected) {
             Serial.println(">>> Bluetooth CONNECTED! <<<");
+            pending_sync = true;
+            connect_time = millis();
         } else {
             Serial.println(">>> Bluetooth DISCONNECTED! <<<");
+            volume_synced = false;
+            pending_sync = false;
         }
         request_ui_update();
         last_connected = current_connected;
+    }
+
+    // Process Force Sync after 2000ms
+    if (pending_sync && current_connected && (millis() - connect_time > 2000)) {
+        Serial.println("Force Syncing Volume to Host...");
+        for (int i = 0; i < 50; i++) { 
+            keyboard_volume_down();
+            delay(5);
+        }
+        int initial_vol = map(hw_read_pot(), 0, 4095, 0, 100);
+        int steps_up = initial_vol / 2; 
+        for (int i = 0; i < steps_up; i++) {
+            keyboard_volume_up();
+            delay(5);
+        }
+        Serial.println("Volume Synced!");
+        last_vol_sent = initial_vol;
+        volume_synced = true;
+        pending_sync = false;
     }
 
     serial_input_process();
@@ -116,6 +144,37 @@ void controller_update() {
     if (abs(curr_vol - last_vol_disp) >= 2) {
         last_vol_disp = curr_vol;
         ui_needs_update = true;
+    }
+
+    // Host Volume Adjust Logic
+    if (current_connected && volume_synced) {
+        // อัปเดตเมื่อหมุนต่างกัน >= 4% (2 แกร๊ก) หรือเมื่อหมุนสุดขอบที่ 0% หรือ 100%
+        if (abs(curr_vol - last_vol_sent) >= 4 || (curr_vol == 0 && last_vol_sent > 0) || (curr_vol == 100 && last_vol_sent < 100)) {
+            
+            int diff = curr_vol - last_vol_sent;
+            int steps = abs(diff) / 2; // Windows ขยับทีละ 2% ต่อการกด 1 ครั้ง
+            
+            // กรณีหมุนสุดขอบ 0 หรือ 100 แต่ diff หาร 2 แล้วไม่ได้สัก step ให้อย่างน้อยส่ง 1 ครั้ง
+            if (steps == 0 && abs(diff) > 0 && (curr_vol == 0 || curr_vol == 100)) {
+                steps = 1;
+            }
+
+            if (steps > 0) {
+                if (diff > 0) {
+                    for (int i = 0; i < steps; i++) {
+                        keyboard_volume_up();
+                        delay(2);
+                    }
+                    last_vol_sent += (steps * 2); // บวกเฉพาะจำนวน% ที่สอดคล้องกับครั้งที่กดจริง
+                } else {
+                    for (int i = 0; i < steps; i++) {
+                        keyboard_volume_down();
+                        delay(2);
+                    }
+                    last_vol_sent -= (steps * 2); // ลบเฉพาะจำนวน% ที่สอดคล้องกับครั้งที่กดจริง
+                }
+            }
+        }
     }
 
     // Track Force Sensor for UI Changes

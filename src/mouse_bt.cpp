@@ -1,6 +1,9 @@
 #include "mouse_bt.h"
 #include <BleCombo.h>
 
+BleComboKeyboard Keyboard("ESP32 BT Mouse", "Espressif", 100);
+BleComboMouse Mouse(&Keyboard);
+
 void mouse_bt_init() {
     Keyboard.begin();
     Mouse.begin();
@@ -51,5 +54,17 @@ void keyboard_release(uint8_t key) {
 void keyboard_release_all() {
     if (mouse_bt_is_connected()) {
         Keyboard.releaseAll();
+    }
+}
+
+void keyboard_volume_up() {
+    if (mouse_bt_is_connected()) {
+        Keyboard.write(KEY_MEDIA_VOLUME_UP);
+    }
+}
+
+void keyboard_volume_down() {
+    if (mouse_bt_is_connected()) {
+        Keyboard.write(KEY_MEDIA_VOLUME_DOWN);
     }
 }
