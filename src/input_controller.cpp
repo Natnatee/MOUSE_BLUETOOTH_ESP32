@@ -201,10 +201,10 @@ void controller_update() {
         }
     }
 
-    // --- Rate Limit UI Refresh (Max 10 FPS) ---
-    // ป้องกันจอ I2C ทำให้อ่านค่าเมาส์ช้าลง (หน่วง)
+    // --- Constant UI Refresh (10 FPS) ---
+    // รีเฟรชจอทุกๆ 0.1 วิ เพื่อให้ค่าบนจอดู Smooth ตลอดเวลา
     static unsigned long last_ui_refresh = 0;
-    if (ui_needs_update && millis() - last_ui_refresh > 100) {
+    if (millis() - last_ui_refresh > 100) {
         request_ui_update();
         last_ui_refresh = millis();
     }
