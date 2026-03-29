@@ -53,7 +53,7 @@ void display_play_mode(const char* profile_name, bool connected, int mouse_x, in
     
     // 3. Volume (แสดง % พร้อมแถบ bar)
     display.setCursor(0, 40);
-    int bar_width = map(volume_pct, 0, 100, 0, 40);
+    int bar_width = map(volume_pct, 0, 100, 0, 56);
     display.printf("VOL:%3d%%[", volume_pct);
     display.setCursor(114, 40);
     display.print("]");
