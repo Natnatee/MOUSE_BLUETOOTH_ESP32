@@ -433,7 +433,23 @@ void controller_update() {
             
             // === KEYBOARD PROCESSING ===
             char key_this_frame = 0;
-            if (p->keyboard_input == InputSource::BUTTON_SET_2) {
+            if (p->keyboard_input == InputSource::MPU6050) {
+                // อิงจากเกณฑ์ 60 องศา (sin 60 deg * 16384 ~= 14000)
+                const int TILT_THRESHOLD = 14000;
+                sensor_data_t data = mpu_get_data();
+
+                static bool last_w = false, last_s = false, last_a = false, last_d = false;
+                bool w = data.ax < -TILT_THRESHOLD; // เงยหน้าขึ้น (Pitch Up)
+                bool s = data.ax > TILT_THRESHOLD;  // ก้มหน้าลง (Pitch Down)
+                bool a = data.ay < -TILT_THRESHOLD; // เอียงซ้าย (Roll Left)
+                bool d = data.ay > TILT_THRESHOLD;  // เอียงขวา (Roll Right)
+
+                if (w != last_w) { if (w) { keyboard_press('w'); key_this_frame='W'; } else keyboard_release('w'); last_w = w; }
+                if (s != last_s) { if (s) { keyboard_press('s'); key_this_frame='S'; } else keyboard_release('s'); last_s = s; }
+                if (a != last_a) { if (a) { keyboard_press('a'); key_this_frame='A'; } else keyboard_release('a'); last_a = a; }
+                if (d != last_d) { if (d) { keyboard_press('d'); key_this_frame='D'; } else keyboard_release('d'); last_d = d; }
+            }
+            else if (p->keyboard_input == InputSource::BUTTON_SET_2) {
                 static bool lc1 = false, lc2 = false, lc3 = false, lc4 = false;
                 if (bs.conf1 != lc1) { if (bs.conf1) { keyboard_press('a'); key_this_frame = 'A'; } else keyboard_release('a'); lc1 = bs.conf1; }
                 if (bs.conf2 != lc2) { if (bs.conf2) { keyboard_press('b'); key_this_frame = 'B'; } else keyboard_release('b'); lc2 = bs.conf2; }

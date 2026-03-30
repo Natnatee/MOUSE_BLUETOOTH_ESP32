@@ -12,9 +12,9 @@ void profile_manager_init() {
     profiles[0].keyboard_input = InputSource::JOYSTICK;
     profiles[0].mpu_sensitivity = 5;
 
-    strncpy(profiles[1].name, "PROFILE 02", PROFILE_NAME_LEN);
+    strncpy(profiles[1].name, "Ball", PROFILE_NAME_LEN);
     profiles[1].mouse_input = InputSource::JOYSTICK;
-    profiles[1].keyboard_input = InputSource::BUTTON_SET_2;
+    profiles[1].keyboard_input = InputSource::MPU6050; // ใช้ MPU ส่งปุ่ม W A S D
     profiles[1].mpu_sensitivity = 3;
 
     strncpy(profiles[2].name, "PROFILE 03", PROFILE_NAME_LEN);
