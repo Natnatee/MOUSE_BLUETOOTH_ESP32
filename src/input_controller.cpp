@@ -391,7 +391,23 @@ void controller_update() {
             if (p->mouse_input == InputSource::MPU6050 && mpu_available) {
                 sensor_data_t data = mpu_get_data();
                 mouse_x = (int8_t)(data.gz / MPU_DIVIDER);
-                mouse_y = (int8_t)(data.gx / MPU_DIVIDER);
+                mouse_y = (int8_t)-(data.gy / MPU_DIVIDER); // Inverted Y axis as requested
+
+                // MPU Mouse Clicks (Button A -> Left, Button B -> Right)
+                static bool last_l_click = false;
+                static bool last_r_click = false;
+                
+                if (bs.conf1 != last_l_click) {
+                    if (bs.conf1) { mouse_press(MOUSE_LEFT); last_key_pressed = 'M'; ui_needs_update = true; }
+                    else mouse_release(MOUSE_LEFT);
+                    last_l_click = bs.conf1;
+                }
+                
+                if (bs.conf2 != last_r_click) {
+                    if (bs.conf2) { mouse_press(MOUSE_RIGHT); last_key_pressed = 'M'; ui_needs_update = true; }
+                    else mouse_release(MOUSE_RIGHT);
+                    last_r_click = bs.conf2;
+                }
             } 
             else if (p->mouse_input == InputSource::JOYSTICK) {
                 joystick_data_t joy = joystick_read();
@@ -408,7 +424,8 @@ void controller_update() {
             }
 
             static bool last_mouse_click = false;
-            if (trigger_mouse_click != last_mouse_click) {
+            // Existing logic for Joystick Click
+            if (p->mouse_input == InputSource::JOYSTICK && trigger_mouse_click != last_mouse_click) {
                 if (trigger_mouse_click) { mouse_press(MOUSE_LEFT); last_key_pressed = 'M'; ui_needs_update = true; }
                 else mouse_release(MOUSE_LEFT);
                 last_mouse_click = trigger_mouse_click;

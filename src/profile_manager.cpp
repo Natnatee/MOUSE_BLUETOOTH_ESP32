@@ -7,7 +7,7 @@ uint8_t active_profiles_count = 0;
 void profile_manager_init() {
     active_profiles_count = 3;
     
-    strncpy(profiles[0].name, "PROFILE 01", PROFILE_NAME_LEN);
+    strncpy(profiles[0].name, "MPU MOUSE", PROFILE_NAME_LEN);
     profiles[0].mouse_input = InputSource::MPU6050;
     profiles[0].keyboard_input = InputSource::JOYSTICK;
     profiles[0].mpu_sensitivity = 5;
