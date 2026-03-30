@@ -110,6 +110,17 @@ void process_global_buttons(ButtonState bs) {
             setting_menu_idx = 0; // Reset cursor
             acted = true; 
         }
+        
+        // Long Press OK to Calibrate MPU
+        static unsigned long ok_press_start = 0;
+        static bool ok_long_handled = false;
+        if (bs.ok && !last_btn_ok) { ok_press_start = millis(); ok_long_handled = false; }
+        if (bs.ok && last_btn_ok && !ok_long_handled && (millis() - ok_press_start > 1000)) {
+            mpu_calibrate();
+            ok_long_handled = true;
+            last_key_pressed = 'C'; // UI Feedback: 'C' for Calibrate
+            acted = true;
+        }
     } 
     else if (state == SystemState::STATE_SETTING_MAIN) {
         if (bs.up && !last_btn_up) {
@@ -389,7 +400,7 @@ void controller_update() {
             
             // === MOUSE PROCESSING ===
             if (p->mouse_input == InputSource::MPU6050 && mpu_available) {
-                sensor_data_t data = mpu_get_data();
+                sensor_data_t data = mpu_get_data_clean(); // ใช้ค่าที่ผ่านการเซตศูนย์แล้ว
                 mouse_x = (int8_t)(data.gz / MPU_DIVIDER);
                 mouse_y = (int8_t)-(data.gy / MPU_DIVIDER); // Inverted Y axis as requested
 
@@ -434,15 +445,15 @@ void controller_update() {
             // === KEYBOARD PROCESSING ===
             char key_this_frame = 0;
             if (p->keyboard_input == InputSource::MPU6050) {
-                // อิงจากเกณฑ์ 60 องศา (sin 60 deg * 16384 ~= 14000)
-                const int TILT_THRESHOLD = 14000;
-                sensor_data_t data = mpu_get_data();
+                // มุม 45 องศา (sin 45 deg * 16384 ~= 11585)
+                const int TILT_THRESHOLD = 11585; 
+                sensor_data_t data = mpu_get_data_clean(); // ใช้ค่าที่ผ่านการเซตศูนย์แล้ว
 
                 static bool last_w = false, last_s = false, last_a = false, last_d = false;
-                bool w = data.ax < -TILT_THRESHOLD; // เงยหน้าขึ้น (Pitch Up)
-                bool s = data.ax > TILT_THRESHOLD;  // ก้มหน้าลง (Pitch Down)
-                bool a = data.ay < -TILT_THRESHOLD; // เอียงซ้าย (Roll Left)
-                bool d = data.ay > TILT_THRESHOLD;  // เอียงขวา (Roll Right)
+                bool w = data.ax < -TILT_THRESHOLD; // เงยหน้าขึ้น (Pitch Up) -> เดินหน้า
+                bool s = data.ax > TILT_THRESHOLD;  // ก้มหน้าลง (Pitch Down) -> ถอยหลัง
+                bool a = data.ay < -TILT_THRESHOLD; // เอียงซ้าย (Roll Left) -> ไปซ้าย
+                bool d = data.ay > TILT_THRESHOLD;  // เอียงขวา (Roll Right) -> ไปขวา
 
                 if (w != last_w) { if (w) { keyboard_press('w'); key_this_frame='W'; } else keyboard_release('w'); last_w = w; }
                 if (s != last_s) { if (s) { keyboard_press('s'); key_this_frame='S'; } else keyboard_release('s'); last_s = s; }

@@ -9,3 +9,5 @@ struct sensor_data_t {
 
 bool mpu_init();
 sensor_data_t mpu_get_data();
+void mpu_calibrate();
+sensor_data_t mpu_get_data_clean();
