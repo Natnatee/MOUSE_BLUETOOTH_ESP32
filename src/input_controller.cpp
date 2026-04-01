@@ -401,8 +401,10 @@ void controller_update() {
             // === MOUSE PROCESSING ===
             if (p->mouse_input == InputSource::MPU6050 && mpu_available) {
                 sensor_data_t data = mpu_get_data_clean(); // ใช้ค่าที่ผ่านการเซตศูนย์แล้ว
-                mouse_x = (int8_t)(data.gz / MPU_DIVIDER);
-                mouse_y = (int8_t)-(data.gy / MPU_DIVIDER); // Inverted Y axis as requested
+                
+                // เพิ่มความไว: X +30%, Y +10%
+                mouse_x = (int8_t)(data.gz * 1.3f / MPU_DIVIDER);
+                mouse_y = (int8_t)-(data.gy * 1.1f / MPU_DIVIDER);
 
                 // MPU Mouse Clicks (Button A -> Left, Button B -> Right)
                 static bool last_l_click = false;
@@ -445,17 +447,37 @@ void controller_update() {
             // === KEYBOARD PROCESSING ===
             char key_this_frame = 0;
             if (p->keyboard_input == InputSource::MPU6050) {
-                // ลดมุมลงเหลือประมาณ 20 องศา (sin 20 deg * 16384 ~= 5603)
+                // มุมเอียงเลี้ยว (20 องศา)
                 const int TILT_THRESHOLD = 5600; 
-                sensor_data_t data = mpu_get_data_clean(); // ใช้ค่าที่ผ่านการเซตศูนย์แล้ว
+                sensor_data_t data = mpu_get_data_clean();
+                int current_force = force_read_analog();
+                joystick_data_t joy = joystick_read();
 
-                static bool last_a = false, last_d = false;
-                // สลับปุ่ม A/D ตามคำขอ
-                bool a = data.ay > TILT_THRESHOLD;  // เอียงขวา -> ส่งปุ่ม A
-                bool d = data.ay < -TILT_THRESHOLD; // เอียงซ้าย -> ส่งปุ่ม D
+                static bool last_a = false, last_d = false, last_w = false;
+                static bool last_t = false, last_g = false, last_c = false, last_p = false;
+                
+                // เลี้ยวซ้าย-ขวาจากการเอียง
+                bool a = data.ay > TILT_THRESHOLD;  
+                bool d = data.ay < -TILT_THRESHOLD; 
+                
+                // เดินหน้า (W) จาก FSR
+                bool w = current_force > 3500;
+
+                // Joystick Up/Down -> T/G
+                bool t = joy.y < -JOY_DEAD_ZONE;
+                bool g = joy.y > JOY_DEAD_ZONE;
+
+                // Buttons -> C/P (Config 1 & 2)
+                bool c = bs.conf1;
+                bool p_btn = bs.conf2; // ใช้ชื่อ p_btn เพราะ p ถูกใช้ใน pointer
 
                 if (a != last_a) { if (a) { keyboard_press('a'); key_this_frame = 'A'; } else keyboard_release('a'); last_a = a; }
                 if (d != last_d) { if (d) { keyboard_press('d'); key_this_frame = 'D'; } else keyboard_release('d'); last_d = d; }
+                if (w != last_w) { if (w) { keyboard_press('w'); key_this_frame = 'W'; } else keyboard_release('w'); last_w = w; }
+                if (t != last_t) { if (t) { keyboard_press('t'); key_this_frame = 'T'; } else keyboard_release('t'); last_t = t; }
+                if (g != last_g) { if (g) { keyboard_press('g'); key_this_frame = 'G'; } else keyboard_release('g'); last_g = g; }
+                if (c != last_c) { if (c) { keyboard_press('c'); key_this_frame = 'C'; } else keyboard_release('c'); last_c = c; }
+                if (p_btn != last_p) { if (p_btn) { keyboard_press('p'); key_this_frame = 'P'; } else keyboard_release('p'); last_p = p_btn; }
             }
             else if (p->keyboard_input == InputSource::BUTTON_SET_2) {
                 static bool lc1 = false, lc2 = false, lc3 = false, lc4 = false;

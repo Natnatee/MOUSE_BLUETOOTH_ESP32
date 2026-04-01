@@ -13,12 +13,12 @@ void profile_manager_init() {
     profiles[0].mpu_sensitivity = 5;
 
     strncpy(profiles[1].name, "Ball", PROFILE_NAME_LEN);
-    profiles[1].mouse_input = InputSource::JOYSTICK;
-    profiles[1].keyboard_input = InputSource::MPU6050; // ใช้ MPU ส่งปุ่ม W A S D
+    profiles[1].mouse_input = InputSource::NONE; // ปิดเมาส์ตามสั่ง
+    profiles[1].keyboard_input = InputSource::MPU6050; // ยังใช้ MPU คุม A/D/W
     profiles[1].mpu_sensitivity = 3;
 
-    strncpy(profiles[2].name, "PROFILE 03", PROFILE_NAME_LEN);
-    profiles[2].mouse_input = InputSource::NONE;
+    strncpy(profiles[2].name, "JOY MOUSE", PROFILE_NAME_LEN);
+    profiles[2].mouse_input = InputSource::JOYSTICK; // ใช้ Joy แทนเมาส์
     profiles[2].keyboard_input = InputSource::NONE;
     profiles[2].mpu_sensitivity = 1;
 }
