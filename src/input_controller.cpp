@@ -445,20 +445,17 @@ void controller_update() {
             // === KEYBOARD PROCESSING ===
             char key_this_frame = 0;
             if (p->keyboard_input == InputSource::MPU6050) {
-                // มุม 45 องศา (sin 45 deg * 16384 ~= 11585)
-                const int TILT_THRESHOLD = 11585; 
+                // ลดมุมลงเหลือประมาณ 20 องศา (sin 20 deg * 16384 ~= 5603)
+                const int TILT_THRESHOLD = 5600; 
                 sensor_data_t data = mpu_get_data_clean(); // ใช้ค่าที่ผ่านการเซตศูนย์แล้ว
 
-                static bool last_w = false, last_s = false, last_a = false, last_d = false;
-                bool w = data.ax < -TILT_THRESHOLD; // เงยหน้าขึ้น (Pitch Up) -> เดินหน้า
-                bool s = data.ax > TILT_THRESHOLD;  // ก้มหน้าลง (Pitch Down) -> ถอยหลัง
-                bool a = data.ay < -TILT_THRESHOLD; // เอียงซ้าย (Roll Left) -> ไปซ้าย
-                bool d = data.ay > TILT_THRESHOLD;  // เอียงขวา (Roll Right) -> ไปขวา
+                static bool last_a = false, last_d = false;
+                // สลับปุ่ม A/D ตามคำขอ
+                bool a = data.ay > TILT_THRESHOLD;  // เอียงขวา -> ส่งปุ่ม A
+                bool d = data.ay < -TILT_THRESHOLD; // เอียงซ้าย -> ส่งปุ่ม D
 
-                if (w != last_w) { if (w) { keyboard_press('w'); key_this_frame='W'; } else keyboard_release('w'); last_w = w; }
-                if (s != last_s) { if (s) { keyboard_press('s'); key_this_frame='S'; } else keyboard_release('s'); last_s = s; }
-                if (a != last_a) { if (a) { keyboard_press('a'); key_this_frame='A'; } else keyboard_release('a'); last_a = a; }
-                if (d != last_d) { if (d) { keyboard_press('d'); key_this_frame='D'; } else keyboard_release('d'); last_d = d; }
+                if (a != last_a) { if (a) { keyboard_press('a'); key_this_frame = 'A'; } else keyboard_release('a'); last_a = a; }
+                if (d != last_d) { if (d) { keyboard_press('d'); key_this_frame = 'D'; } else keyboard_release('d'); last_d = d; }
             }
             else if (p->keyboard_input == InputSource::BUTTON_SET_2) {
                 static bool lc1 = false, lc2 = false, lc3 = false, lc4 = false;
