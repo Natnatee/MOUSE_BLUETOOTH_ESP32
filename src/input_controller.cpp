@@ -448,27 +448,43 @@ void controller_update() {
             // === KEYBOARD PROCESSING ===
             char key_this_frame = 0;
             if (p->keyboard_input == InputSource::MPU6050) {
-                // ปรับ Threshold ของการเอียง (20 และ 40 องศา)
-                const int TILT_STUTTER = 5600;  // 20 deg
-                const int TILT_HOLD = 11200;    // 40 deg
-                
+                // --- Multi-Level Tilt Logic (A/D) ---
                 sensor_data_t data = mpu_get_data_clean();
                 int current_force = force_read_analog();
                 joystick_data_t joy = joystick_read();
 
+                int abs_ay = abs(data.ay);
+                int interval = 0;
+                bool is_stutter = false;
+
+                if (abs_ay > 14000) { // > 50 deg: Hold
+                    is_stutter = false;
+                } else if (abs_ay > 11200) { // 40-50 deg: Very Fast
+                    is_stutter = true; interval = 60;
+                } else if (abs_ay > 8400) { // 30-40 deg: Fast
+                    is_stutter = true; interval = 120;
+                } else if (abs_ay > 5600) { // 20-30 deg: Slow
+                    is_stutter = true; interval = 200;
+                }
+
                 // ตัวแปรสำหรับคุมการกดรัว (Rapid Fire)
                 static uint32_t rapid_timer = 0;
                 static bool rapid_state = false;
-                if (millis() - rapid_timer > 100) { rapid_state = !rapid_state; rapid_timer = millis(); }
+                if (is_stutter) {
+                    if (millis() - rapid_timer > interval) {
+                        rapid_state = !rapid_state;
+                        rapid_timer = millis();
+                    }
+                } else {
+                    rapid_state = true; // ถ้าอยู่นอกช่วง stutter ให้พร้อมกดทันที
+                }
 
                 static bool last_a = false, last_d = false, last_w = false;
                 static bool last_t = false, last_g = false, last_c = false, last_p = false;
                 
-                // --- คำนวณสถานะปุ่ม A (เอียงซ้าย) ---
-                bool a_active = (data.ay > TILT_HOLD) || (data.ay > TILT_STUTTER && rapid_state);
-
-                // --- คำนวณสถานะปุ่ม D (เอียงขวา) ---
-                bool d_active = (data.ay < -TILT_HOLD) || (data.ay < -TILT_STUTTER && rapid_state);
+                // --- คำนวณสถานะปุ่ม A/D ---
+                bool a_active = (data.ay > 14000) || (data.ay > 5600 && rapid_state);
+                bool d_active = (data.ay < -14000) || (data.ay < -5600 && rapid_state);
 
                 // เดินหน้า (W) จาก FSR
                 bool w = current_force > 3500;
