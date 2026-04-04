@@ -21,16 +21,16 @@ const int MPU_DIVIDER = 512;  // ความไวของ MPU
 const int JOY_DIVIDER = 140;  // ความไวของ Joystick
 
 // --- Global Buttons (Setup Menu) ---
-#define BTN_UP_PIN 13
-#define BTN_DOWN_PIN 12
+#define BTN_UP_PIN 26    // ย้ายมากลุ่มขาฝั่งซ้ายล่าง เพื่อความต่อเนื่อง (27, 26, 25, 14)
+#define BTN_DOWN_PIN 25  // (เดิม 12) เลี่ยง Strapping Pin เพื่อความเสถียรตอน Boot
 #define BTN_OK_PIN 14
 #define BTN_BACK_PIN 27
 
 // --- Configurable Buttons ---
-#define BTN_CONF_1_PIN 4
-#define BTN_CONF_2_PIN 5
-#define BTN_CONF_3_PIN 18
-#define BTN_CONF_4_PIN 19
+#define BTN_CONF_1_PIN 19 // จัดกลุ่มขาฝั่งขวาล่างให้เรียงกัน (19, 18, 17, 16)
+#define BTN_CONF_2_PIN 18
+#define BTN_CONF_3_PIN 17 // (TX2) แทนขาขากลุ่มเดิม และเลี่ยงขา 5 (Strapping Pin)
+#define BTN_CONF_4_PIN 16 // (RX2) 
 
 // --- Potentiometer ---
 #define POT_PIN 33
