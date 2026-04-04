@@ -103,9 +103,10 @@ void process_global_buttons(ButtonState bs) {
     bool acted = false;
 
     if (state == SystemState::STATE_PLAY) {
-        if (bs.up && !last_btn_up) { prev_profile(); acted = true; }
-        else if (bs.down && !last_btn_down) { next_profile(); acted = true; }
+        if (bs.up && !last_btn_up) { prev_profile(); keyboard_release_all(); acted = true; }
+        else if (bs.down && !last_btn_down) { next_profile(); keyboard_release_all(); acted = true; }
         else if (bs.back && !last_btn_back) { 
+            keyboard_release_all(); // ป้องกันปุ่มค้างตอนเข้าเมนู
             switch_state(SystemState::STATE_SETTING_MAIN); 
             setting_menu_idx = 0; // Reset cursor
             acted = true; 
@@ -447,19 +448,28 @@ void controller_update() {
             // === KEYBOARD PROCESSING ===
             char key_this_frame = 0;
             if (p->keyboard_input == InputSource::MPU6050) {
-                // มุมเอียงเลี้ยว (20 องศา)
-                const int TILT_THRESHOLD = 5600; 
+                // ปรับ Threshold ของการเอียง (20 และ 40 องศา)
+                const int TILT_STUTTER = 5600;  // 20 deg
+                const int TILT_HOLD = 11200;    // 40 deg
+                
                 sensor_data_t data = mpu_get_data_clean();
                 int current_force = force_read_analog();
                 joystick_data_t joy = joystick_read();
 
+                // ตัวแปรสำหรับคุมการกดรัว (Rapid Fire)
+                static uint32_t rapid_timer = 0;
+                static bool rapid_state = false;
+                if (millis() - rapid_timer > 100) { rapid_state = !rapid_state; rapid_timer = millis(); }
+
                 static bool last_a = false, last_d = false, last_w = false;
                 static bool last_t = false, last_g = false, last_c = false, last_p = false;
                 
-                // เลี้ยวซ้าย-ขวาจากการเอียง
-                bool a = data.ay > TILT_THRESHOLD;  
-                bool d = data.ay < -TILT_THRESHOLD; 
-                
+                // --- คำนวณสถานะปุ่ม A (เอียงซ้าย) ---
+                bool a_active = (data.ay > TILT_HOLD) || (data.ay > TILT_STUTTER && rapid_state);
+
+                // --- คำนวณสถานะปุ่ม D (เอียงขวา) ---
+                bool d_active = (data.ay < -TILT_HOLD) || (data.ay < -TILT_STUTTER && rapid_state);
+
                 // เดินหน้า (W) จาก FSR
                 bool w = current_force > 3500;
 
@@ -471,8 +481,8 @@ void controller_update() {
                 bool c = bs.conf1;
                 bool p_btn = bs.conf2; // ใช้ชื่อ p_btn เพราะ p ถูกใช้ใน pointer
 
-                if (a != last_a) { if (a) { keyboard_press('a'); key_this_frame = 'A'; } else keyboard_release('a'); last_a = a; }
-                if (d != last_d) { if (d) { keyboard_press('d'); key_this_frame = 'D'; } else keyboard_release('d'); last_d = d; }
+                if (a_active != last_a) { if (a_active) { keyboard_press('a'); key_this_frame = 'A'; } else keyboard_release('a'); last_a = a_active; }
+                if (d_active != last_d) { if (d_active) { keyboard_press('d'); key_this_frame = 'D'; } else keyboard_release('d'); last_d = d_active; }
                 if (w != last_w) { if (w) { keyboard_press('w'); key_this_frame = 'W'; } else keyboard_release('w'); last_w = w; }
                 if (t != last_t) { if (t) { keyboard_press('t'); key_this_frame = 'T'; } else keyboard_release('t'); last_t = t; }
                 if (g != last_g) { if (g) { keyboard_press('g'); key_this_frame = 'G'; } else keyboard_release('g'); last_g = g; }

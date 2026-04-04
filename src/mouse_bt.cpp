@@ -54,6 +54,9 @@ void keyboard_release(uint8_t key) {
 void keyboard_release_all() {
     if (mouse_bt_is_connected()) {
         Keyboard.releaseAll();
+        Mouse.release(MOUSE_LEFT);
+        Mouse.release(MOUSE_RIGHT);
+        Mouse.release(MOUSE_MIDDLE);
     }
 }
 
